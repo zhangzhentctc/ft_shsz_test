@@ -16,6 +16,7 @@ class quote_api:
         try:
             self.quote_ctx = OpenQuoteContext(host=self.host, port=self.port)
         except:
+            print("Connect err")
             return RET_ERR
         return RET_OK
 
@@ -23,6 +24,7 @@ class quote_api:
         try:
             self.quote_ctx.close()
         except:
+            print("Disconnect err")
             return RET_ERR
         return RET_OK
 
@@ -57,6 +59,7 @@ class quote_api:
     def get_hkfuture_time(self):
         ret_code, ret_data = self.get_quote([CODE_HK_FUTURE])
         if ret_code != RET_OK:
+            print(ret_data)
             return RET_ERR, ''
         try:
             data_time = ret_data["data_time"][0]

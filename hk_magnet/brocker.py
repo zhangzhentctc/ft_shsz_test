@@ -1,33 +1,43 @@
 from hk_magnet.localtime_api import *
 from hk_magnet.quote_api import *
 from hk_magnet.trade_api import *
+from hk_magnet.ret_sender import *
+
+#### Customers
+UNLOCK_PASSWD = ''
+EMAIL_PASSWD = ''
+CODE_HK_BULL = 'HK.64033'
+CODE_HK_BEAR = 'HK.59628'
+TRADE_AMOUNT = 5
+
+#### Systems
+TIME_SET_REAL = 1
+TIME_SET_TEST = 2
+timesets = TIME_SET_REAL
+if timesets == TIME_SET_REAL:
+    TIME_START_WORK    = '09:25:00'
+    TIME_CONN_DEADLINE = '09:29:00'
+    TIME_PREP_DEADLINE = '09:31:00'
+    TIME_MKT_OPEN = '09:30:00'
+    TIME_STR_END = '09:45:00'
+else:
+    TIME_START_WORK    = '12:55:00'
+    TIME_CONN_DEADLINE = '12:59:00'
+    TIME_PREP_DEADLINE = '13:01:00'
+    TIME_MKT_OPEN = '13:00:00'
+    TIME_STR_END = '13:15:00'
 
 HOST = '127.0.0.1'
 PORT = 11111
 TRADE_TYPE_SIMU = 1
 TRADE_TYPE_REAL = 0
-
-#TIME_START_WORK    = '09:25:00'
-#TIME_CONN_DEADLINE = '09:29:00'
-#TIME_PREP_DEADLINE = '09:31:00'
-#TIME_MKT_OPEN = '09:30:00'
-#TIME_STR_END = '09:45:00'
-
-TIME_START_WORK    = '15:10:00'
-TIME_CONN_DEADLINE = '15:14:00'
-TIME_PREP_DEADLINE = '15:16:00'
-TIME_MKT_OPEN = '15:15:00'
-TIME_STR_END = '15:18:00'
+CODE_HK_FUTURE = 'HK_FUTURE.999010'
+CODE_HK_HSI = 'HK.800000'
+MARKET_HK = 'HK'
 
 TIME_CMP_BIGGER = 1
 TIME_CMP_EQUAL = 0
 TIME_CMP_SMALLER = -1
-UNLOCK_PASSWD = '584679'
-MARKET_HK = 'HK'
-CODE_HK_FUTURE = 'HK_FUTURE.999010'
-CODE_HK_HSI = 'HK.800000'
-CODE_HK_BULL = 'HK.64033'
-CODE_HK_BEAR = 'HK.58854'
 
 DATA_TYPE_QUO = "QUOTE"
 DATA_TYPE_BROKER = "BROKER"
@@ -43,15 +53,20 @@ TRADE_SIDE_SELL = 1
 ERR_NOT_TRADE_DAY = 10001
 ERR_PREP_TIMEOUT = 10002
 ERR_NOT_DEALT = 10003
+
+
 class brocker:
     def __init__(self):
         self.quote = quote_api(HOST, PORT)
-        self.trade = trade_api(HOST, PORT, TRADE_TYPE_SIMU)
+        self.trade = trade_api(HOST, PORT, TRADE_TYPE_REAL)
+        self.msg = ""
 
     def rec_log(self, str):
         l = localtime_api()
         now_time = l.get_local_time()
-        print("[" + now_time + "] " + str)
+        msg = "[" + now_time + "] " + str
+        print(msg)
+        self.msg = self.msg + msg + "\n\r"
 
     def get_local_time(self):
         l = localtime_api()
@@ -375,8 +390,12 @@ class brocker:
         else:
             return RET_ERR
 
-        self.rec_log("----Place Order")
-        qty = 1 * 10000
+
+
+
+        qty = TRADE_AMOUNT * 10000
+        self.rec_log("----Place Order: " + str(dir) + " " + str(warrent_code) + " " + str(price) + " " + str(qty))
+
         ret, orderid = self.trade.place_order(price, qty, warrent_code, dir)
         if ret != RET_OK:
             return RET_ERR
@@ -387,6 +406,7 @@ class brocker:
             self.rec_log("Query Order ERR")
             return RET_ERR
         ## Not Dealt
+
         if status != 3:
             self.rec_log("----Not dealt... wait for 3 seconds")
             ## Wait for 3 s
@@ -397,36 +417,38 @@ class brocker:
                 return RET_ERR
             ## Not Dealt
             if status != 3:
-                self.rec_log("----Not dealt... wait for 3 seconds")
-                time.sleep(3)
-                ## Wait for Warrent
-                ret = self.wait_for_open_warrent()
-                if ret != RET_OK:
-                    return RET_ERR
-                ## Wait for Narrow
-                ret, bid, ask = self.wait_for_narrow()
-                if ret != RET_OK:
-                    return RET_ERR
+                self.rec_log("----Not dealt..." + str(status))
 
-                if dir == TRADE_SIDE_BUY:
-                    price = ask
-                elif dir == TRADE_SIDE_SELL:
-                    price = bid
+                ## Wait for being dealt or is partly dealt
+                if status == 1 or status == 2:
+                    ret = self.wait_for_open_warrent()
+                    if ret != RET_OK:
+                        return RET_ERR
 
-                self.rec_log("----Modify Price")
-                ret = self.trade.modify(price, qty, orderid)
-                if ret != RET_OK:
-                    return RET_ERR
-                time.sleep(3)
-                ret, status = self.trade.query_order(orderid)
-                if ret != RET_OK:
-                    return RET_ERR
-                ## Not Dealt
-                if status != 3:
-                    self.rec_log("Not Dealt. Big ERR!!!!")
-                    return ERR_NOT_DEALT
-                else:
-                    success = True
+                    ret, bid, ask = self.wait_for_narrow()
+                    if ret != RET_OK:
+                        return RET_ERR
+
+                    if dir == TRADE_SIDE_BUY:
+                        price = ask
+                    elif dir == TRADE_SIDE_SELL:
+                        price = bid
+
+                    self.rec_log(
+                        "----Modify Price " + str(dir) + " " + str(warrent_code) + " " + str(price) + " " + str(qty))
+                    ret = self.trade.modify(price, qty, orderid)
+                    if ret != RET_OK:
+                        return RET_ERR
+                    time.sleep(3)
+                    ret, status = self.trade.query_order(orderid)
+                    if ret != RET_OK:
+                        return RET_ERR
+                    ## Not Dealt
+                    if status != 3:
+                        self.rec_log("Not Dealt. Big ERR!!!!")
+                        return ERR_NOT_DEALT
+                    else:
+                        success = True
         ## Dealt
         else:
             success = True
@@ -495,3 +517,7 @@ class brocker:
 
 b = brocker()
 b.process()
+
+sub = "[" + b.get_local_date() + "]" + " Magnet Log"
+s = ret_sender(sub, b.msg, EMAIL_PASSWD)
+s.send_email()

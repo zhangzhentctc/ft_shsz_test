@@ -4,8 +4,8 @@ from hk_magnet.trade_api import *
 from hk_magnet.ret_sender import *
 
 #### Customers
-UNLOCK_PASSWD = ''
-EMAIL_PASSWD = ''
+UNLOCK_PASSWD = '584679'
+EMAIL_PASSWD = '45600123'
 CODE_HK_BULL = 'HK.64033'
 CODE_HK_BEAR = 'HK.59628'
 TRADE_AMOUNT = 5
@@ -53,6 +53,22 @@ TRADE_SIDE_SELL = 1
 ERR_NOT_TRADE_DAY = 10001
 ERR_PREP_TIMEOUT = 10002
 ERR_NOT_DEALT = 10003
+
+ORDER_PROCESSING = 0
+ORDER_SENT = 21
+
+ORDER_INVALID = 4
+ORDER_FAILURE = 5
+ORDER_WITHDRAWED = 6
+ORDER_DELETED = 7
+ORDER_WAIT_OPEN = 8
+
+ORDER_SRV_FAIL = 22
+ORDER_SRV_TIMEOUT = 23
+
+ORDER_WAIT = 1
+ORDER_PARTLY = 2
+ORDER_DEALT = 3
 
 
 class brocker:
@@ -374,6 +390,112 @@ class brocker:
             return RET_ERR, 0, 0
 
     def make_order(self, warrent_code, dir):
+        success = False
+        flag_modify_fail = False
+        dealt = 0
+        qty = TRADE_AMOUNT * 10000
+        while True:
+            self.rec_log("----Make Order")
+            ## Place Order
+            ret = self.wait_for_open_warrent()
+            if ret != RET_OK:
+                return RET_ERR
+
+            ret, bid, ask = self.wait_for_narrow()
+            if ret != RET_OK:
+                return RET_ERR
+
+            if dir == TRADE_SIDE_BUY:
+                price = ask
+            elif dir == TRADE_SIDE_SELL:
+                price = bid
+            else:
+                return RET_ERR
+
+            self.rec_log("----Place Order: " + str(dir) + " " + str(warrent_code) + " " + str(price) + " " + str(qty))
+            ret, orderid = self.trade.place_order(price, qty, warrent_code, dir)
+            if ret != RET_OK:
+                return RET_ERR
+
+            while True:
+                # Check Status
+                ret, status = self.trade.query_order(orderid)
+                if ret != RET_OK:
+                    self.rec_log("Query Order ERR")
+                    return RET_ERR
+
+                if status == ORDER_PROCESSING or status == ORDER_SENT:
+                    self.rec_log("----Order Processing: status=" + str(status))
+                    time.sleep(1)
+                    continue
+                else:
+                    break
+
+            if status == ORDER_SRV_TIMEOUT or status == ORDER_SRV_FAIL or \
+                status == ORDER_DELETED or status == ORDER_FAILURE or \
+                status == ORDER_WITHDRAWED or status == ORDER_INVALID:
+                self.rec_log("----Order Fail: status=" + str(status) + " Try Again")
+                continue
+
+            elif status == ORDER_DEALT:
+                self.rec_log("----Order Dealt")
+                success = True
+                break
+
+            else:
+                self.rec_log("----Order Waiting status="  + str(status))
+                while True:
+                    time.sleep(3)
+                    ret, status = self.trade.query_order(orderid)
+                    if ret != RET_OK:
+                        self.rec_log("Query Order ERR")
+                        return RET_ERR
+
+                    if status == ORDER_DEALT:
+                        self.rec_log("--------Order Dealt")
+                        success = True
+                        break
+                    elif status == ORDER_WAIT or status == ORDER_PARTLY:
+                        self.rec_log("--------Order Not All Dealt")
+                        ## Modify Order
+                        ret = self.wait_for_open_warrent()
+                        if ret != RET_OK:
+                            return RET_ERR
+
+                        ret, bid, ask = self.wait_for_narrow()
+                        if ret != RET_OK:
+                            return RET_ERR
+
+                        if dir == TRADE_SIDE_BUY:
+                            price = ask
+                        elif dir == TRADE_SIDE_SELL:
+                            price = bid
+                        self.rec_log("--------Modify Price " + str(dir) + " " + str(warrent_code) + " " + str(price) + " " + str(qty))
+                        ret = self.trade.modify(price, qty, orderid)
+                        if ret != RET_OK:
+                            flag_modify_fail = True
+                            ret, dealt = self.trade.query_order_dealt(orderid)
+                            if ret != RET_OK:
+                                self.rec_log("Query Order ERR")
+                                return RET_ERR
+                            break
+                        ## Modify Success
+                        continue
+
+                if flag_modify_fail == True:
+                    qty = qty - dealt
+                    continue
+
+                if success == True:
+                    break
+
+        if success == True:
+            return RET_OK
+        else:
+            return RET_ERR
+
+
+    def make_order_1st(self, warrent_code, dir):
         self.rec_log("----Make Order")
         ret = self.wait_for_open_warrent()
         if ret != RET_OK:
@@ -405,7 +527,6 @@ class brocker:
         if ret != RET_OK:
             self.rec_log("Query Order ERR")
             return RET_ERR
-        ## Not Dealt
 
         if status != 3:
             self.rec_log("----Not dealt... wait for 3 seconds")

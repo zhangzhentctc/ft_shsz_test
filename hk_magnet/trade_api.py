@@ -67,6 +67,20 @@ class trade_api:
             status = -1
         return RET_OK, status
 
+    def query_order_dealt(self, orderid):
+        dealt_qty = -100
+        ret_code, ret_data = self.tradehk_ctx.order_list_query(orderid=orderid,
+                                                          statusfilter="", strcode='', start='', end='',
+                                                          envtype=self.envtype)
+        if ret_code != RET_OK:
+            return RET_ERR, dealt_qty
+
+        try:
+            dealt_qty = int(ret_data["dealt_qty"][0])
+        except:
+            dealt_qty = -1
+            return RET_ERR, dealt_qty
+        return RET_OK, dealt_qty
 
 ######## TEST
 if __name__ == "__main__":

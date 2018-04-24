@@ -244,7 +244,7 @@ class brocker:
             self.rec_log("Sell Warent ERR")
             return ret
 
-        self.disconnect()
+        ##self.disconnect()
 
         return RET_OK
 
@@ -638,6 +638,7 @@ class brocker:
 
 b = brocker()
 b.process()
+b.disconnect()
 
 sub = "[" + b.get_local_date() + "]" + " Magnet Log"
 s = ret_sender(sub, b.msg, EMAIL_PASSWD)

@@ -4,8 +4,8 @@ from hk_magnet.trade_api import *
 from hk_magnet.ret_sender import *
 
 #### Customers
-UNLOCK_PASSWD = '584679'
-EMAIL_PASSWD = '45600123'
+UNLOCK_PASSWD = ''
+EMAIL_PASSWD = ''
 CODE_HK_BULL = 'HK.64033'
 CODE_HK_BEAR = 'HK.59628'
 TRADE_AMOUNT = 5

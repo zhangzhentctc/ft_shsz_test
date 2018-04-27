@@ -1,4 +1,4 @@
-
+from hk_magnet.brocker import *
 from hk_magnet.localtime_api import *
 import time
 ## Check Time:
@@ -25,7 +25,7 @@ RET_ERR = -1
 TIME_ACTIVE_LEFT = '09:16:00'
 TIME_ACTIVE_RIGHT = '09:31:00'
 TIME_WORK_DONE = '09:45:00'
-
+EMAIL_PASSWD = ''
 #TIME_ACTIVE_LEFT = '20:56:00'
 #TIME_ACTIVE_RIGHT = '21:11:00'
 #TIME_WORK_DONE = '21:25:00'
@@ -38,6 +38,7 @@ class main_control:
     def srv_start(self):
         print("Start Server")
         while True:
+            print("Waiting 1 ...")
             while True:
                 local_time = self.get_local_time()
                 if (self.compare_time(local_time, TIME_ACTIVE_RIGHT) == TIME_CMP_SMALLER or self.compare_time(local_time,
@@ -45,17 +46,23 @@ class main_control:
                                 self.compare_time(local_time, TIME_ACTIVE_LEFT) == TIME_CMP_BIGGER:
                     break
                 else:
-                    print(">")
                     time.sleep(150)
                     continue
+
             print("Start Work")
-            self.fake_work_success()
+            b = brocker()
+            b.process()
+            b.disconnect()
+            sub = "[" + b.get_local_date() + "]" + " Magnet Log"
+            s = ret_sender(sub, b.msg, EMAIL_PASSWD)
+            s.send_email()
             print("Finish Work")
+
+            print("Waiting 2 ...")
             while True:
                 if self.compare_time(local_time, TIME_ACTIVE_LEFT) == TIME_CMP_BIGGER:
                     break
                 else:
-                    print("<")
                     time.sleep(150)
                     continue
 

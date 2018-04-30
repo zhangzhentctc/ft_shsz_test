@@ -60,7 +60,7 @@ class main_control:
 
             print("Waiting 2 ...")
             while True:
-                if self.compare_time(local_time, TIME_ACTIVE_LEFT) == TIME_CMP_BIGGER:
+                if self.compare_time(local_time, TIME_WORK_DONE) == TIME_CMP_BIGGER:
                     break
                 else:
                     time.sleep(150)

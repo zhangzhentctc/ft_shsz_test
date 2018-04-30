@@ -636,10 +636,12 @@ class brocker:
         else:
             return TIME_CMP_SMALLER
 
-b = brocker()
-b.process()
-b.disconnect()
 
-sub = "[" + b.get_local_date() + "]" + " Magnet Log"
-s = ret_sender(sub, b.msg, EMAIL_PASSWD)
-s.send_email()
+if __name__ == "__main__":
+    b = brocker()
+    b.process()
+    b.disconnect()
+
+    sub = "[" + b.get_local_date() + "]" + " Magnet Log"
+    s = ret_sender(sub, b.msg, EMAIL_PASSWD)
+    s.send_email()

@@ -102,7 +102,7 @@ class quote_api:
 if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'
     API_LO_SVR_IP = '127.0.0.1'
-    q = quote_api(API_RM_SVR_IP, 11111)
+    q = quote_api(API_LO_SVR_IP, 11111)
     ret = q.connect()
     if ret != RET_OK:
         print("Connect ERR")

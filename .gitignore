@@ -1,3 +1,5 @@
 .idea/
 __pycache__/
 *.log
+unlock.txt
+email.txt

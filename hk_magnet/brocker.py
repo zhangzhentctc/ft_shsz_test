@@ -70,12 +70,19 @@ ORDER_WAIT = 1
 ORDER_PARTLY = 2
 ORDER_DEALT = 3
 
+UNLOCK_PASSWD_FILE = './unlock.txt'
 
 class brocker:
     def __init__(self):
         self.quote = quote_api(HOST, PORT)
         self.trade = trade_api(HOST, PORT, TRADE_TYPE_REAL)
         self.msg = ""
+        try:
+            file = open(UNLOCK_PASSWD_FILE, 'r')
+            all_line_txt = file.readlines()
+            self.unlock_passwd = all_line_txt[0].strip('\n')
+        except:
+            self.unlock_passwd = '123456'
 
     def rec_log(self, str):
         l = localtime_api()
@@ -148,7 +155,7 @@ class brocker:
                 continue
         if success == True:
             self.rec_log("Unlock...")
-            ret = self.trade.unlock(UNLOCK_PASSWD)
+            ret = self.trade.unlock(self.unlock_passwd)
             if ret != RET_OK:
                 return RET_ERR
 

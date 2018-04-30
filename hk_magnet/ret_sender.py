@@ -3,14 +3,21 @@ from email.mime.text import MIMEText
 
 RET_OK = 0
 RET_ERR = -1
+EMAIL_PASSWD_FILE = './email.txt'
+
 class ret_sender:
-    def __init__(self, subject, content, passwd):
+    def __init__(self, subject, content):
         self.host = 'smtp.163.com'
         self.username = 'zhangzhentctc@163.com'
-        self.passwd = passwd
         self.to_list = ['aaronzhenzhang@gmail.com']
         self.subject = subject
         self.content = content
+        try:
+            file = open(EMAIL_PASSWD_FILE, 'r')
+            all_line_txt = file.readlines()
+            self.passwd = all_line_txt[0].strip('\n')
+        except:
+            self.passwd = '123456'
 
     def send_email(self):
         msg = MIMEText(self.content.encode('utf8'), _subtype='html', _charset='utf8')

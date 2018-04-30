@@ -1,5 +1,5 @@
 .idea/
 __pycache__/
 *.log
-unlock.txt
-email.txt
+./hk_magnet/unlock.txt
+./hk_magnet/email.txt

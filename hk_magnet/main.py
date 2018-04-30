@@ -25,7 +25,7 @@ RET_ERR = -1
 TIME_ACTIVE_LEFT = '09:16:00'
 TIME_ACTIVE_RIGHT = '09:31:00'
 TIME_WORK_DONE = '09:45:00'
-EMAIL_PASSWD = ''
+
 #TIME_ACTIVE_LEFT = '20:56:00'
 #TIME_ACTIVE_RIGHT = '21:11:00'
 #TIME_WORK_DONE = '21:25:00'
@@ -54,7 +54,7 @@ class main_control:
             b.process()
             b.disconnect()
             sub = "[" + b.get_local_date() + "]" + " Magnet Log"
-            s = ret_sender(sub, b.msg, EMAIL_PASSWD)
+            s = ret_sender(sub, b.msg)
             s.send_email()
             print("Finish Work")
 

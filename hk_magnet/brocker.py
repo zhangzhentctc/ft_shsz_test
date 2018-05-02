@@ -650,5 +650,5 @@ if __name__ == "__main__":
     b.disconnect()
 
     sub = "[" + b.get_local_date() + "]" + " Magnet Log"
-    s = ret_sender(sub, b.msg, EMAIL_PASSWD)
+    s = ret_sender(sub, b.msg)
     s.send_email()

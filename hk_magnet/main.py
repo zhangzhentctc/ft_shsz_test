@@ -24,7 +24,7 @@ RET_ERR = -1
 
 TIME_ACTIVE_LEFT = '09:16:00'
 TIME_ACTIVE_RIGHT = '09:31:00'
-TIME_WORK_DONE = '09:45:00'
+TIME_WORK_DONE = '09:50:00'
 
 #TIME_ACTIVE_LEFT = '20:56:00'
 #TIME_ACTIVE_RIGHT = '21:11:00'
@@ -34,6 +34,17 @@ TIME_WORK_DONE = '09:45:00'
 class main_control:
     def __init__(self):
         pass
+
+    def work(self):
+        self.fake_work_fails()
+        #print("Start Work")
+        #b = brocker()
+        #b.process()
+        #b.disconnect()
+        #sub = "[" + b.get_local_date() + "]" + " Magnet Log"
+        #s = ret_sender(sub, b.msg)
+        #s.send_email()
+        #print("Finish Work")
 
     def srv_start(self):
         print("Start Server")
@@ -49,17 +60,11 @@ class main_control:
                     time.sleep(150)
                     continue
 
-            print("Start Work")
-            b = brocker()
-            b.process()
-            b.disconnect()
-            sub = "[" + b.get_local_date() + "]" + " Magnet Log"
-            s = ret_sender(sub, b.msg)
-            s.send_email()
-            print("Finish Work")
+            self.work()
 
             print("Waiting 2 ...")
             while True:
+                local_time = self.get_local_time()
                 if self.compare_time(local_time, TIME_WORK_DONE) == TIME_CMP_BIGGER:
                     break
                 else:
@@ -98,6 +103,7 @@ class main_control:
 
     ## Exit when 09:45:00
     def fake_work_success(self):
+        print("Fake Work!")
         while True:
             local_time = self.get_local_time()
             if self.compare_time(local_time, TIME_WORK_DONE) == TIME_CMP_BIGGER or self.compare_time(local_time, TIME_WORK_DONE) == TIME_CMP_EQUAL:
@@ -105,11 +111,14 @@ class main_control:
             else:
                 time.sleep(2)
                 continue
+        print("Fake Work Succeed!")
         return
 
     ## sleep for 3 seconds
     def fake_work_fails(self):
+        print("Fake Work!")
         time.sleep(5)
+        print("Fake Work Fail!")
         return
 
 if __name__ == "__main__":

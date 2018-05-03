@@ -4,10 +4,15 @@ from hk_magnet.trade_api import *
 from hk_magnet.ret_sender import *
 
 #### Customers
-UNLOCK_PASSWD = ''
-EMAIL_PASSWD = ''
-CODE_HK_BULL = 'HK.64033'
-CODE_HK_BEAR = 'HK.59628'
+
+CODE_HK_BULL     = 'HK.64737'
+CODE_HK_BULL_BK1 = 'HK.64033'
+CODE_HK_BULL_BK2 = 'HK.64084'
+
+CODE_HK_BEAR     = 'HK.59628'
+CODE_HK_BEAR_BK1 = 'HK.62738'
+CODE_HK_BEAR_BK2 = 'HK.59634'
+
 TRADE_AMOUNT = 5
 
 #### Systems
@@ -231,11 +236,6 @@ class brocker:
             self.rec_log("Check Warrent ERR")
             return ret
 
-        ret = self.wait_for_open_warrent()
-        if ret != RET_OK:
-            self.rec_log("Wait for Warrent Open ERR")
-            return ret
-
         ret = self.buy_warrent()
         if ret != RET_OK:
             self.rec_log("Buy Warrent ERR")
@@ -311,9 +311,13 @@ class brocker:
             if new_open > last_close:
                 dir = DIR_BEAR
                 self.warrent = CODE_HK_BEAR
+                self.warrent_bk1 = CODE_HK_BEAR_BK1
+                self.warrent_bk2 = CODE_HK_BEAR_BK2
             else:
                 dir = DIR_BULL
                 self.warrent = CODE_HK_BULL
+                self.warrent_bk1 = CODE_HK_BULL_BK1
+                self.warrent_bk2 = CODE_HK_BULL_BK2
             return RET_OK
         else:
             return RET_ERR
@@ -321,15 +325,18 @@ class brocker:
 
     def check_warrent(self):
         self.rec_log("Checking Warrent")
-        ret = self.quote.subscribe(self.warrent, DATA_TYPE_QUO)
-        if ret != RET_OK:
-            return RET_ERR
-        ret = self.quote.subscribe(self.warrent, DATA_TYPE_BROKER)
-        if ret != RET_OK:
-            return RET_ERR
-        ret = self.quote.subscribe(self.warrent, DATA_TYPE_BOOK)
-        if ret != RET_OK:
-            return RET_ERR
+        for warrent in [self.warrent, self.warrent_bk1, self.warrent_bk2]:
+            ret = self.quote.subscribe(warrent, DATA_TYPE_QUO)
+            if ret != RET_OK:
+                return RET_ERR
+            ret = self.quote.subscribe(warrent, DATA_TYPE_BROKER)
+            if ret != RET_OK:
+                return RET_ERR
+            ret = self.quote.subscribe(warrent, DATA_TYPE_BOOK)
+            if ret != RET_OK:
+                return RET_ERR
+
+
         ## WARRENT CHECK SKIP
 
         return RET_OK
@@ -340,11 +347,15 @@ class brocker:
 
 
 ## Trade_Level
-    def wait_for_open_warrent(self):
+    ## Faba 96
+    ## Mogen 97
+    ## Ruixin 97
+    def wait_for_open_warrent(self, warrent_code):
         self.rec_log("----Wait for Warrent Open")
         waited_time = 0
+        success = False
         while waited_time < 360:
-            ret, bid_data, ask_data = self.quote.get_brokers(self.warrent)
+            ret, bid_data, ask_data = self.quote.get_brokers(warrent_code)
             if ret != RET_OK:
                 success = False
                 break
@@ -354,14 +365,14 @@ class brocker:
                 bid_broker_pos = bid_data["bid_broker_pos"][i]
                 bid_broker_id = bid_data["bid_broker_id"][i]
                 if bid_broker_pos == '0' and \
-                    bid_broker_id[0]== '9' and bid_broker_id[1] == '7':
+                    bid_broker_id[0]== '9' and (bid_broker_id[1] == '7' or bid_broker_id[1] == '6'):
                     bid_ok = True
 
             for i in range (0, len(ask_data.index)):
                 ask_broker_pos = ask_data["ask_broker_pos"][i]
                 ask_broker_id = ask_data["ask_broker_id"][i]
                 if ask_broker_pos == '0' and \
-                    ask_broker_id[0]== '9' and ask_broker_id[1] == '7':
+                    ask_broker_id[0]== '9' and (bid_broker_id[1] == '7' or bid_broker_id[1] == '6'):
                     ask_ok = True
             if bid_ok == True and ask_ok == True:
                 success = True
@@ -376,11 +387,11 @@ class brocker:
         else:
             return RET_ERR
 
-    def wait_for_narrow(self):
+    def wait_for_narrow(self, warrent_code):
         self.rec_log("----Wait for narrow")
         success = False
         while True:
-            ret, bid, ask = self.quote.get_book(self.warrent)
+            ret, bid, ask = self.quote.get_book(warrent_code)
             if ret != RET_OK:
                 return RET_ERR, 0, 0
             narrow = ask * 1000 - bid * 1000
@@ -397,18 +408,28 @@ class brocker:
             return RET_ERR, 0, 0
 
     def make_order(self, warrent_code, dir):
+        if dir == TRADE_SIDE_BUY:
+            trail_max = 4
+            fail_wait_t = 1
+        elif dir == TRADE_SIDE_SELL:
+            trail_max = 100
+            fail_wait_t = 2
+        else:
+            return RET_ERR
+
+        trail = 0
         success = False
         flag_modify_fail = False
         dealt = 0
         qty = TRADE_AMOUNT * 10000
-        while True:
+        while trail < trail_max:
             self.rec_log("----Make Order")
             ## Place Order
-            ret = self.wait_for_open_warrent()
+            ret = self.wait_for_open_warrent(warrent_code)
             if ret != RET_OK:
                 return RET_ERR
 
-            ret, bid, ask = self.wait_for_narrow()
+            ret, bid, ask = self.wait_for_narrow(warrent_code)
             if ret != RET_OK:
                 return RET_ERR
 
@@ -442,6 +463,8 @@ class brocker:
                 status == ORDER_DELETED or status == ORDER_FAILURE or \
                 status == ORDER_WITHDRAWED or status == ORDER_INVALID:
                 self.rec_log("----Order Fail: status=" + str(status) + " Try Again")
+                trail += 1
+                time.sleep(fail_wait_t)
                 continue
 
             elif status == ORDER_DEALT:
@@ -465,11 +488,11 @@ class brocker:
                     elif status == ORDER_WAIT or status == ORDER_PARTLY:
                         self.rec_log("--------Order Not All Dealt")
                         ## Modify Order
-                        ret = self.wait_for_open_warrent()
+                        ret = self.wait_for_open_warrent(warrent_code)
                         if ret != RET_OK:
                             return RET_ERR
 
-                        ret, bid, ask = self.wait_for_narrow()
+                        ret, bid, ask = self.wait_for_narrow(warrent_code)
                         if ret != RET_OK:
                             return RET_ERR
 
@@ -504,11 +527,11 @@ class brocker:
 
     def make_order_1st(self, warrent_code, dir):
         self.rec_log("----Make Order")
-        ret = self.wait_for_open_warrent()
+        ret = self.wait_for_open_warrent(warrent_code)
         if ret != RET_OK:
             return RET_ERR
 
-        ret, bid, ask = self.wait_for_narrow()
+        ret, bid, ask = self.wait_for_narrow(warrent_code)
         if ret != RET_OK:
             return RET_ERR
         ## Place Order
@@ -549,11 +572,11 @@ class brocker:
 
                 ## Wait for being dealt or is partly dealt
                 if status == 1 or status == 2:
-                    ret = self.wait_for_open_warrent()
+                    ret = self.wait_for_open_warrent(warrent_code)
                     if ret != RET_OK:
                         return RET_ERR
 
-                    ret, bid, ask = self.wait_for_narrow()
+                    ret, bid, ask = self.wait_for_narrow(warrent_code)
                     if ret != RET_OK:
                         return RET_ERR
 
@@ -589,10 +612,19 @@ class brocker:
 
     def buy_warrent(self):
         self.rec_log("Buy...")
-        ret = self.make_order(self.warrent, TRADE_SIDE_BUY)
-        if ret != RET_OK:
+        success = False
+        for warrent in [self.warrent, self.warrent_bk1, self.warrent_bk2]:
+            self.trade_warrent = warrent
+            ret = self.make_order(warrent, TRADE_SIDE_BUY)
+            if ret != RET_OK:
+                continue
+            else:
+                success = True
+                break
+        if success == True:
+            return RET_OK
+        else:
             return RET_ERR
-        return RET_OK
 
     def wait_for_timer(self):
         self.rec_log("Waiting for Timer")
@@ -619,7 +651,7 @@ class brocker:
 
     def sell_warrent(self):
         self.rec_log("Sell...")
-        ret = self.make_order(self.warrent, TRADE_SIDE_SELL)
+        ret = self.make_order(self.trade_warrent, TRADE_SIDE_SELL)
         if ret != RET_OK:
             return RET_ERR
         return RET_OK

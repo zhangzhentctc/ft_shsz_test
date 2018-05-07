@@ -36,15 +36,15 @@ class main_control:
         pass
 
     def work(self):
-        self.fake_work_fails()
-        #print("Start Work")
-        #b = brocker()
-        #b.process()
-        #b.disconnect()
-        #sub = "[" + b.get_local_date() + "]" + " Magnet Log"
-        #s = ret_sender(sub, b.msg)
-        #s.send_email()
-        #print("Finish Work")
+        #self.fake_work_fails()
+        print("Start Work")
+        b = brocker()
+        b.process()
+        b.disconnect()
+        sub = "[" + b.get_local_date() + "]" + " Magnet Log"
+        s = ret_sender(sub, b.msg)
+        s.send_email()
+        print("Finish Work")
 
     def srv_start(self):
         print("Start Server")

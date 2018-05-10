@@ -49,23 +49,27 @@ class broker:
         print("Get WARRENT Done.")
         cnt = 0
         for i in range(0, len(ret_data)):
-            if ret_data["owner_stock_code"][i] == "HK.80000" and ret_data["lot_size"][i] == 10000 and \
+            if ret_data["owner_stock_code"][i] == "HK.800000" and ret_data["lot_size"][i] == 10000 and \
                     (ret_data["stock_child_type"][i] == "BULL" or ret_data["stock_child_type"][i] == "BEAR"):
                 for holder in warrant_holder_list:
                     if holder in ret_data["name"][i]:
                         code_list.append([ret_data["code"][i],ret_data["name"][i],ret_data["stock_child_type"][i]])
                         cnt += 1
+        print("Filter Done")
 
         para_code_list = []
         para_code_list_cnt = 0
-        hsi_open = 23809
+        hsi_open = 30809
         para_code_cnt = 0
+        print("Code List Count " + str(len(code_list)))
         for code in code_list:
+            #print(code[0])
             para_code_list.append(code[0])
             para_code_list_cnt += 1
             para_code_cnt += 1
 
             if para_code_list_cnt >= 199 or para_code_cnt == len(code_list):
+                print("Process 1st group")
                 ret_code, ret_data_ = self.quote_ctx.get_market_snapshot(para_code_list)
                 if ret_code != 0:
                     return -1, ret_data_
@@ -73,14 +77,15 @@ class broker:
 
                 for j in range(0, len(ret_data_)):
                     if ret_data_["suspension"][j] == False and \
-                            ret_data_["wrt_street_ratio"][i] < 50 and \
-                            abs(ret_data_["wrt_recovery_price"][i] - hsi_open) > 500 and \
-                            abs(ret_data_["wrt_recovery_price"][i] - hsi_open) < 1000:
-                        print(str(ret_data_["code"][i]) + " " + str(ret_data_["prev_close_price"][i]))
+                            ret_data_["wrt_street_ratio"][j] < 50 and \
+                            abs(ret_data_["wrt_recovery_price"][j] - hsi_open) > 500 and \
+                            abs(ret_data_["wrt_recovery_price"][j] - hsi_open) < 1000:
+                        print(str(ret_data_["code"][j]) + " " + str(ret_data_["prev_close_price"][j]))
 
                 time.sleep(6)
                 para_code_list = []
                 para_code_list_cnt = 0
+        print("Done")
 
 
 
@@ -175,11 +180,10 @@ if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'
     API_LO_SVR_IP = '127.0.0.1'
     API_SVR_PORT = 11111
-    b = broker(API_RM_SVR_IP, API_SVR_PORT)
+    b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
-    ret, cn_list = b.find_warrent()
-    if ret != -1:
-        print(cn_list)
+    b.find_warrent()
+
     exit(0)
 
 

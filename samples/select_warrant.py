@@ -1,5 +1,9 @@
 from futuquant import *
 import time
+
+DIR_BEAR = -1
+DIR_BULL = 1
+
 class broker:
     def __init__(self, api_svr_ip, api_svr_port):
         self.api_svr_ip = api_svr_ip
@@ -40,7 +44,46 @@ class broker:
             return -1, []
         return 0, ret_data
 
-    def find_warrent(self):
+    def filter_warrent(self, hsi_animal_list, recycle_min, recycle_max, steet_ratio, hsi_open):
+        para_code_list = []
+        para_code_list_cnt = 0
+        para_code_cnt = 0
+        hsi_animal_ret = []
+        bear_cnt = 0
+        bull_cnt = 0
+        for code in hsi_animal_list:
+            para_code_list.append(code[0])
+            para_code_list_cnt += 1
+            para_code_cnt += 1
+
+            if para_code_list_cnt >= 199 or para_code_cnt == len(hsi_animal_list):
+                print("Process group")
+                ret_code, hsi_animals_shot = self.quote_ctx.get_market_snapshot(para_code_list)
+                if ret_code != 0:
+                    return -1, -1, hsi_animals_shot
+
+                # Filter
+                for j in range(0, len(hsi_animals_shot)):
+                    warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
+                    if hsi_animals_shot["suspension"][j] == False and \
+                                    hsi_animals_shot["wrt_street_ratio"][j] < steet_ratio and \
+                                    warrant_deep > recycle_min and \
+                                    warrant_deep < recycle_max:
+                        if hsi_animals_shot["wrt_type"][j] == "BEAR":
+                            bear_cnt += 1
+                        if hsi_animals_shot["wrt_type"][j] == "BULL":
+                            bull_cnt += 1
+                        hsi_animal_ret.append([hsi_animals_shot["code"][j], hsi_animals_shot["wrt_recovery_price"][j],
+                                               hsi_animals_shot["wrt_type"][j], abs(warrant_deep - 700)])
+
+                time.sleep(6)
+                para_code_list = []
+                para_code_list_cnt = 0
+
+        return bull_cnt, bear_cnt, hsi_animal_ret
+
+
+    def find_warrent(self, recycle_min, recycle_max, steet_ratio, hsi_open = 0):
         ret_code, hsi_shot = self.quote_ctx.get_market_snapshot(["HK.800000"])
         if ret_code != 0:
             return -1, hsi_shot
@@ -51,8 +94,7 @@ class broker:
         hsi_animal_list = []
         ret_code, all_warrant = self.quote_ctx.get_stock_basicinfo("HK", stock_type='WARRANT')
         if ret_code != 0:
-            return -1, all_warrant
-        print("Get WARRENT Done.")
+            return -1, all_warrant, all_warrant
 
         hsi_animal_cnt = 0
         for i in range(0, len(all_warrant)):
@@ -62,43 +104,67 @@ class broker:
                     if warrant_holder_list[holder_num] in all_warrant["name"][i]:
                         hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
                         hsi_animal_cnt += 1
-        print("Filter Done")
-        print("Code List Count " + str(len(hsi_animal_list)))
 
-        para_code_list = []
-        para_code_list_cnt = 0
-        para_code_cnt = 0
-        hsi_animal_ret = []
-        for code in hsi_animal_list:
-            para_code_list.append(code[0])
-            para_code_list_cnt += 1
-            para_code_cnt += 1
+        bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max, steet_ratio, hsi_open)
 
-            if para_code_list_cnt >= 199 or para_code_cnt == len(hsi_animal_list):
-                print("Process group")
-                ret_code, hsi_animals_shot = self.quote_ctx.get_market_snapshot(para_code_list)
-                if ret_code != 0:
-                    return -1, hsi_animals_shot
+        if bull_cnt < 2 or bear_cnt < 2:
+            bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max + 500,
+                                                                     steet_ratio, hsi_open)
+            if bull_cnt < 0 or bear_cnt < 0:
+                return -1, [], []
 
-                # Filter
-                for j in range(0, len(hsi_animals_shot)):
-                    warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
-                    if hsi_animals_shot["suspension"][j] == False and \
-                                    hsi_animals_shot["wrt_street_ratio"][j] < 50 and \
-                                    warrant_deep > 600 and \
-                                    warrant_deep < 1000:
 
-                        hsi_animal_ret.append([hsi_animals_shot["code"][j], hsi_animals_shot["wrt_recovery_price"][j], warrant_deep/10000])
-                        #print(str(hsi_animals_shot["code"][j]) + " " + str(hsi_animals_shot["prev_close_price"][j]))
+        hsi_bull_ret = []
+        hsi_bear_ret = []
+        for i in range(0, len(hsi_animal_ret)):
+            if hsi_animal_ret[i][2] == "BULL":
+                hsi_bull_ret.append(hsi_animal_ret[i])
+            elif hsi_animal_ret[i][2] == "BEAR":
+                hsi_bear_ret.append(hsi_animal_ret[i])
+            else:
+                continue
 
-                time.sleep(6)
-                para_code_list = []
-                para_code_list_cnt = 0
+        #for animal in hsi_animal_ret:
+        #    print(str(animal[0]) + " " + str(animal[1]) + " " + str(animal[2]) + " " + str(animal[3]))
 
-        for animal in hsi_animal_ret:
-            print(str(animal[0]) + " " + str(animal[1]) + " " + str(animal[2]))
+        print("Sorting...")
+        ### Sort
+        factor_pos = 3
+        hsi_bull_ret_order = []
+        hsi_bear_ret_order = []
+        while len(hsi_bull_ret) > 0:
+            min_pos = 0
+            for i in range(0, len(hsi_bull_ret)):
+                if hsi_bull_ret[i][factor_pos] < hsi_bull_ret[min_pos][factor_pos]:
+                    min_pos = i
+            hsi_bull_ret_order.append(hsi_bull_ret[min_pos][0])
+            #if len(hsi_bull_ret) >= 2:
+                #hsi_bull_ret = hsi_bull_ret[:min_pos] + hsi_bull_ret[min_pos + 1:]
+            del(hsi_bull_ret[min_pos])
 
-        print("Done")
+        while len(hsi_bear_ret) > 0:
+            min_pos = 0
+            for i in range(0, len(hsi_bear_ret)):
+                if hsi_bear_ret[i][factor_pos] < hsi_bear_ret[min_pos][factor_pos]:
+                    min_pos = i
+            hsi_bear_ret_order.append(hsi_bear_ret[min_pos][0])
+            #if len(hsi_bear_ret) >= 2:
+                #hsi_bear_ret = hsi_bear_ret[:min_pos] + hsi_bear_ret[min_pos + 1:]
+            # hsi_bear_ret = hsi_bear_ret[:min_pos] + hsi_bear_ret[min_pos + 1:]
+            del (hsi_bear_ret[min_pos])
+
+
+        for animal in hsi_bull_ret_order:
+            print(str(animal))
+
+        print("******************")
+        for animal in hsi_bear_ret_order:
+            print(str(animal))
+            #print(str(animal[0]) + " " + str(animal[1]) + " " + str(animal[2]) + " " + str(animal[3]))
+        print("End")
+        return 0, hsi_bull_ret_order, hsi_bear_ret_order
+
+
 
 
 
@@ -193,9 +259,25 @@ if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'
     API_LO_SVR_IP = '127.0.0.1'
     API_SVR_PORT = 11111
-    b = broker(API_LO_SVR_IP, API_SVR_PORT)
+    b = broker(API_RM_SVR_IP, API_SVR_PORT)
     b.connect_api()
-    b.find_warrent()
+    ret, hsi_bull_ret_order, hsi_bear_ret_order = b.find_warrent(500, 600, 40, 0)
+    if ret == 0:
+        cnt = 0
+        for i in range(0, len(hsi_bear_ret_order)):
+            # self.watch_warrants.append(hsi_bear_ret_order[i])
+            print(hsi_bear_ret_order[i])
+            cnt += 1
+            if cnt >= 3:
+                break
+        print("-----------------------")
+        cnt = 0
+        for i in range(0, len(hsi_bull_ret_order)):
+            # self.watch_warrants.append(hsi_bull_ret_order[i])
+            print(hsi_bull_ret_order[i])
+            cnt += 1
+            if cnt >= 3:
+                break
 
     exit(0)
 

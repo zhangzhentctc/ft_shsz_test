@@ -88,6 +88,8 @@ class brocker:
             self.unlock_passwd = all_line_txt[0].strip('\n')
         except:
             self.unlock_passwd = '123456'
+        self.watch_warrants = []
+
 
     def rec_log(self, str):
         l = localtime_api()
@@ -283,6 +285,111 @@ class brocker:
         else:
             return RET_ERR
 
+    def filter_warrent(self, hsi_animal_list, recycle_min, recycle_max, steet_ratio, hsi_open):
+        para_code_list = []
+        para_code_list_cnt = 0
+        para_code_cnt = 0
+        hsi_animal_ret = []
+        bear_cnt = 0
+        bull_cnt = 0
+        for code in hsi_animal_list:
+            para_code_list.append(code[0])
+            para_code_list_cnt += 1
+            para_code_cnt += 1
+
+            if para_code_list_cnt >= 199 or para_code_cnt == len(hsi_animal_list):
+                print("Process group")
+                ret_code, hsi_animals_shot = self.quote.get_market_snapshot(para_code_list)
+                if ret_code != 0:
+                    return -1, -1, hsi_animals_shot
+
+                # Filter
+                for j in range(0, len(hsi_animals_shot)):
+                    warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
+                    if hsi_animals_shot["suspension"][j] == False and \
+                                    hsi_animals_shot["wrt_street_ratio"][j] < steet_ratio and \
+                                    warrant_deep > recycle_min and \
+                                    warrant_deep < recycle_max:
+                        if hsi_animals_shot["wrt_type"][j] == "BEAR":
+                            bear_cnt += 1
+                        if hsi_animals_shot["wrt_type"][j] == "BULL":
+                            bull_cnt += 1
+                        hsi_animal_ret.append([hsi_animals_shot["code"][j], hsi_animals_shot["wrt_recovery_price"][j],
+                                               hsi_animals_shot["wrt_type"][j], warrant_deep])
+
+                time.sleep(6)
+                para_code_list = []
+                para_code_list_cnt = 0
+
+        return bull_cnt, bear_cnt, hsi_animal_ret
+
+    def find_warrent(self, recycle_min, recycle_max, steet_ratio, hsi_open):
+        #ret_code, hsi_shot = self.quote.get_market_snapshot(["HK.800000"])
+        #if ret_code != 0:
+        #    return -1, hsi_shot
+        #hsi_open = hsi_shot["open_price"][0]
+        #time.sleep(5)
+
+        warrant_holder_list = ["摩通"]
+        hsi_animal_list = []
+        ret_code, all_warrant = self.quote.get_stock_basicinfo("HK", stock_type='WARRANT')
+        if ret_code != 0:
+            return -1, all_warrant
+
+        hsi_animal_cnt = 0
+        for i in range(0, len(all_warrant)):
+            if all_warrant["owner_stock_code"][i] == "HK.800000" and all_warrant["lot_size"][i] == 10000 and \
+                    (all_warrant["stock_child_type"][i] == "BULL" or all_warrant["stock_child_type"][i] == "BEAR"):
+                for holder_num in range(0, len(warrant_holder_list)):
+                    if warrant_holder_list[holder_num] in all_warrant["name"][i]:
+                        hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
+                        hsi_animal_cnt += 1
+
+        bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max, steet_ratio,
+                                                                 hsi_open)
+
+        if bull_cnt < 2 or bear_cnt < 2:
+            bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max + 500,
+                                                                     steet_ratio, hsi_open)
+            if bull_cnt < 0 or bear_cnt < 0:
+                return -1, []
+
+        hsi_bull_ret = []
+        hsi_bear_ret = []
+        for i in range(0, len(hsi_animal_ret)):
+            if hsi_animal_ret[i][2] == "BULL":
+                hsi_bull_ret.append(hsi_animal_ret[i])
+            elif hsi_animal_ret[i][2] == "BEAR":
+                hsi_bear_ret.append(hsi_animal_ret[i])
+            else:
+                continue
+
+        ### Sort
+        factor_pos = 3
+        hsi_bull_ret_order = []
+        hsi_bear_ret_order = []
+        while len(hsi_bull_ret) > 0:
+            min_pos = 0
+            for i in range(0, len(hsi_bull_ret)):
+                if hsi_bull_ret[i][factor_pos] < hsi_bull_ret[min_pos][factor_pos]:
+                    min_pos = i
+            hsi_bull_ret_order.append(hsi_bull_ret[min_pos][0])
+            # if len(hsi_bull_ret) >= 2:
+            # hsi_bull_ret = hsi_bull_ret[:min_pos] + hsi_bull_ret[min_pos + 1:]
+            del (hsi_bull_ret[min_pos])
+
+        while len(hsi_bear_ret) > 0:
+            min_pos = 0
+            for i in range(0, len(hsi_bear_ret)):
+                if hsi_bear_ret[i][factor_pos] < hsi_bear_ret[min_pos][factor_pos]:
+                    min_pos = i
+            hsi_bear_ret_order.append(hsi_bear_ret[min_pos][0])
+            # if len(hsi_bear_ret) >= 2:
+            # hsi_bear_ret = hsi_bear_ret[:min_pos] + hsi_bear_ret[min_pos + 1:]
+            del (hsi_bear_ret[min_pos])
+
+        return 0, hsi_bull_ret, hsi_bear_ret
+
 
     def decide_dir(self):
         success = False
@@ -308,16 +415,51 @@ class brocker:
                 continue
 
         if success == True:
+            #### Search for Warrant Test, Not Enabled
+            try:
+                ret, hsi_bull_ret_order, hsi_bear_ret_order = self.find_warrent(self, 500, 1000, 40, new_open)
+            except:
+                print("Find Warran Fail")
+
             if new_open > last_close:
+                try:
+                    if ret == RET_OK:
+                        cnt = 0
+                        for i in range(0, len(hsi_bear_ret_order)):
+                            # self.watch_warrants.append(hsi_bear_ret_order[i])
+                            self.rec_log("Finding Warrant" + hsi_bear_ret_order[i])
+                            cnt += 1
+                            if cnt >= 3:
+                                break
+                except:
+                    print("Find Warran Fail")
+
                 dir = DIR_BEAR
                 self.warrent = CODE_HK_BEAR
                 self.warrent_bk1 = CODE_HK_BEAR_BK1
                 self.warrent_bk2 = CODE_HK_BEAR_BK2
             else:
+                try:
+                    if ret == RET_OK:
+                        cnt = 0
+                        for i in range(0, len(hsi_bull_ret_order)):
+                            # self.watch_warrants.append(hsi_bull_ret_order[i])
+                            self.rec_log("Finding Warrant" + hsi_bull_ret_order[i])
+                            cnt += 1
+                            if cnt >= 3:
+                                break
+                except:
+                    print("Find Warran Fail")
+
                 dir = DIR_BULL
                 self.warrent = CODE_HK_BULL
                 self.warrent_bk1 = CODE_HK_BULL_BK1
                 self.warrent_bk2 = CODE_HK_BULL_BK2
+
+            self.watch_warrants.append(self.warrent)
+            self.watch_warrants.append(self.warrent_bk1)
+            self.watch_warrants.append(self.warrent_bk2)
+
             return RET_OK
         else:
             return RET_ERR
@@ -325,7 +467,7 @@ class brocker:
 
     def check_warrent(self):
         self.rec_log("Checking Warrent")
-        for warrent in [self.warrent, self.warrent_bk1, self.warrent_bk2]:
+        for warrent in self.watch_warrants:
             ret = self.quote.subscribe(warrent, DATA_TYPE_QUO)
             if ret != RET_OK:
                 return RET_ERR
@@ -635,7 +777,7 @@ class brocker:
     def buy_warrent(self):
         self.rec_log("Buy...")
         success = False
-        for warrent in [self.warrent, self.warrent_bk1, self.warrent_bk2]:
+        for warrent in self.watch_warrants:
             self.trade_warrent = warrent
             ret = self.make_order(warrent, TRADE_SIDE_BUY)
             if ret != RET_OK:

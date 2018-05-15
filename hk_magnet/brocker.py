@@ -5,20 +5,20 @@ from hk_magnet.ret_sender import *
 
 #### Customers
 
-CODE_HK_BULL     = 'HK.64737'
-CODE_HK_BULL_BK1 = 'HK.64033'
-CODE_HK_BULL_BK2 = 'HK.64084'
+CODE_HK_BULL     = 'HK.60139'
+CODE_HK_BULL_BK1 = 'HK.69194'
+CODE_HK_BULL_BK2 = 'HK.69055'
 
-CODE_HK_BEAR     = 'HK.59628'
-CODE_HK_BEAR_BK1 = 'HK.62738'
-CODE_HK_BEAR_BK2 = 'HK.59634'
+CODE_HK_BEAR     = 'HK.68377'
+CODE_HK_BEAR_BK1 = 'HK.57333'
+CODE_HK_BEAR_BK2 = 'HK.62911'
 
-TRADE_AMOUNT = 5
+TRADE_AMOUNT = 10
 
 #### Systems
 TIME_SET_REAL = 1
 TIME_SET_TEST = 2
-timesets = TIME_SET_REAL
+timesets = TIME_SET_TEST
 if timesets == TIME_SET_REAL:
     TIME_START_WORK    = '09:25:00'
     TIME_CONN_DEADLINE = '09:29:00'
@@ -26,11 +26,11 @@ if timesets == TIME_SET_REAL:
     TIME_MKT_OPEN = '09:30:00'
     TIME_STR_END = '09:45:00'
 else:
-    TIME_START_WORK    = '12:55:00'
-    TIME_CONN_DEADLINE = '12:59:00'
-    TIME_PREP_DEADLINE = '13:01:00'
-    TIME_MKT_OPEN = '13:00:00'
-    TIME_STR_END = '13:15:00'
+    TIME_START_WORK    = '15:25:00'
+    TIME_CONN_DEADLINE = '15:29:00'
+    TIME_PREP_DEADLINE = '15:31:00'
+    TIME_MKT_OPEN = '15:30:00'
+    TIME_STR_END = '15:45:00'
 
 HOST = '127.0.0.1'
 PORT = 11111
@@ -80,7 +80,7 @@ UNLOCK_PASSWD_FILE = './unlock.txt'
 class brocker:
     def __init__(self):
         self.quote = quote_api(HOST, PORT)
-        self.trade = trade_api(HOST, PORT, TRADE_TYPE_REAL)
+        self.trade = trade_api(HOST, PORT, TRADE_TYPE_SIMU)
         self.msg = ""
         try:
             file = open(UNLOCK_PASSWD_FILE, 'r')
@@ -354,9 +354,10 @@ class brocker:
         self.rec_log("----Wait for Warrent Open")
         waited_time = 0
         success = False
-        while waited_time < 360:
+        while waited_time < 360 * 2:
             ret, bid_data, ask_data = self.quote.get_brokers(warrent_code)
             if ret != RET_OK:
+                print("API ERR")
                 success = False
                 break
             bid_ok = False
@@ -378,7 +379,7 @@ class brocker:
                 success = True
                 break
             else:
-                time.sleep(1)
+                time.sleep(0.5)
                 waited_time += 1
                 continue
 

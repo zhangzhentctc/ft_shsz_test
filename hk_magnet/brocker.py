@@ -354,7 +354,10 @@ class brocker:
         self.rec_log("----Wait for Warrent Open")
         waited_time = 0
         success = False
-        while waited_time < 360 * 2:
+        intervel = 0.3
+        timeout = 6 * 60
+        ticks = int(timeout/intervel)
+        while waited_time < ticks:
             ret, bid_data, ask_data = self.quote.get_brokers(warrent_code)
             if ret != RET_OK:
                 print("API ERR")
@@ -365,22 +368,40 @@ class brocker:
             for i in range (0, len(bid_data.index)):
                 bid_broker_pos = bid_data["bid_broker_pos"][i]
                 bid_broker_id = bid_data["bid_broker_id"][i]
+                if bid_broker_pos != '0':
+                    bid_ok = False
+                    break
+
                 if bid_broker_pos == '0' and \
                     bid_broker_id[0]== '9' and (bid_broker_id[1] == '7' or bid_broker_id[1] == '6'):
                     bid_ok = True
+                    break
 
             for i in range (0, len(ask_data.index)):
                 ask_broker_pos = ask_data["ask_broker_pos"][i]
                 ask_broker_id = ask_data["ask_broker_id"][i]
+                if ask_broker_pos != '0':
+                    ask_ok = False
+                    break
+
                 if ask_broker_pos == '0' and \
-                    ask_broker_id[0]== '9' and (bid_broker_id[1] == '7' or bid_broker_id[1] == '6'):
+                    ask_broker_id[0]== '9' and (ask_broker_id[1] == '7' or ask_broker_id[1] == '6'):
                     ask_ok = True
+                    break
+
             if bid_ok == True and ask_ok == True:
                 success = True
                 break
             else:
-                time.sleep(0.5)
+                time.sleep(intervel)
                 waited_time += 1
+
+                ## DEBUG
+                if waited_time >= ticks:
+                    self.rec_log("----Wait for Warrent Open Timeout")
+                    print(bid_data)
+                    print(ask_data)
+
                 continue
 
         if success == True:

@@ -41,50 +41,63 @@ class broker:
         return 0, ret_data
 
     def find_warrent(self):
-        warrant_holder_list = ["摩通"]
-        code_list = []
-        ret_code, ret_data = self.quote_ctx.get_stock_basicinfo("HK", stock_type='WARRANT')
+        ret_code, hsi_shot = self.quote_ctx.get_market_snapshot(["HK.800000"])
         if ret_code != 0:
-            return -1, ret_data
+            return -1, hsi_shot
+        hsi_open = hsi_shot["open_price"][0]
+        time.sleep(5)
+
+        warrant_holder_list = ["摩通"]
+        hsi_animal_list = []
+        ret_code, all_warrant = self.quote_ctx.get_stock_basicinfo("HK", stock_type='WARRANT')
+        if ret_code != 0:
+            return -1, all_warrant
         print("Get WARRENT Done.")
-        cnt = 0
-        for i in range(0, len(ret_data)):
-            if ret_data["owner_stock_code"][i] == "HK.800000" and ret_data["lot_size"][i] == 10000 and \
-                    (ret_data["stock_child_type"][i] == "BULL" or ret_data["stock_child_type"][i] == "BEAR"):
-                for holder in warrant_holder_list:
-                    if holder in ret_data["name"][i]:
-                        code_list.append([ret_data["code"][i],ret_data["name"][i],ret_data["stock_child_type"][i]])
-                        cnt += 1
+
+        hsi_animal_cnt = 0
+        for i in range(0, len(all_warrant)):
+            if all_warrant["owner_stock_code"][i] == "HK.800000" and all_warrant["lot_size"][i] == 10000 and \
+                (all_warrant["stock_child_type"][i] == "BULL" or all_warrant["stock_child_type"][i] == "BEAR"):
+                for holder_num in range(0, len(warrant_holder_list)):
+                    if warrant_holder_list[holder_num] in all_warrant["name"][i]:
+                        hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
+                        hsi_animal_cnt += 1
         print("Filter Done")
+        print("Code List Count " + str(len(hsi_animal_list)))
 
         para_code_list = []
         para_code_list_cnt = 0
-        hsi_open = 30809
         para_code_cnt = 0
-        print("Code List Count " + str(len(code_list)))
-        for code in code_list:
-            #print(code[0])
+        hsi_animal_ret = []
+        for code in hsi_animal_list:
             para_code_list.append(code[0])
             para_code_list_cnt += 1
             para_code_cnt += 1
 
-            if para_code_list_cnt >= 199 or para_code_cnt == len(code_list):
-                print("Process 1st group")
-                ret_code, ret_data_ = self.quote_ctx.get_market_snapshot(para_code_list)
+            if para_code_list_cnt >= 199 or para_code_cnt == len(hsi_animal_list):
+                print("Process group")
+                ret_code, hsi_animals_shot = self.quote_ctx.get_market_snapshot(para_code_list)
                 if ret_code != 0:
-                    return -1, ret_data_
+                    return -1, hsi_animals_shot
 
+                # Filter
+                for j in range(0, len(hsi_animals_shot)):
+                    warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
+                    if hsi_animals_shot["suspension"][j] == False and \
+                                    hsi_animals_shot["wrt_street_ratio"][j] < 50 and \
+                                    warrant_deep > 600 and \
+                                    warrant_deep < 1000:
 
-                for j in range(0, len(ret_data_)):
-                    if ret_data_["suspension"][j] == False and \
-                            ret_data_["wrt_street_ratio"][j] < 50 and \
-                            abs(ret_data_["wrt_recovery_price"][j] - hsi_open) > 500 and \
-                            abs(ret_data_["wrt_recovery_price"][j] - hsi_open) < 1000:
-                        print(str(ret_data_["code"][j]) + " " + str(ret_data_["prev_close_price"][j]))
+                        hsi_animal_ret.append([hsi_animals_shot["code"][j], hsi_animals_shot["wrt_recovery_price"][j], warrant_deep/10000])
+                        #print(str(hsi_animals_shot["code"][j]) + " " + str(hsi_animals_shot["prev_close_price"][j]))
 
                 time.sleep(6)
                 para_code_list = []
                 para_code_list_cnt = 0
+
+        for animal in hsi_animal_ret:
+            print(str(animal[0]) + " " + str(animal[1]) + " " + str(animal[2]))
+
         print("Done")
 
 

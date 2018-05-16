@@ -97,6 +97,17 @@ class quote_api:
             return RET_ERR, -1, -1
         return RET_OK, ret_data["Bid"][0][0], ret_data["Ask"][0][0]
 
+    def get_market_snapshot(self, code_list):
+        ret_code, ret_data = self.quote_ctx.get_market_snapshot(["HK.800000"])
+        if ret_code != 0:
+            return RET_ERR, ret_data
+        return RET_OK, ret_data
+
+    def get_stock_basicinfo(self, mkt, stock_type):
+        ret_code, ret_data = self.quote_ctx.get_stock_basicinfo(mkt, stock_type=stock_type)
+        if ret_code != 0:
+            return RET_ERR, ret_data
+        return RET_OK, ret_data
 
 ################### Test
 if __name__ == "__main__":

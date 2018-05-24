@@ -75,7 +75,9 @@ ORDER_WAIT = 1
 ORDER_PARTLY = 2
 ORDER_DEALT = 3
 
-UNLOCK_PASSWD_FILE = './unlock.txt'
+FILE_UNLOCK_PASSWD = './unlock.txt'
+FILE_BULL_CODES = './bull.txt'
+FILE_BEAR_CODES = './bear.txt'
 
 class brocker:
     def __init__(self):
@@ -83,11 +85,33 @@ class brocker:
         self.trade = trade_api(HOST, PORT, TRADE_TYPE_SIMU)
         self.msg = ""
         try:
-            file = open(UNLOCK_PASSWD_FILE, 'r')
+            file = open(FILE_UNLOCK_PASSWD, 'r')
             all_line_txt = file.readlines()
             self.unlock_passwd = all_line_txt[0].strip('\n')
         except:
             self.unlock_passwd = '123456'
+
+        try:
+            file = open(FILE_BULL_CODES, 'r')
+            all_line_txt = file.readlines()
+            self.bull_codes = [all_line_txt[0].strip('\n'), all_line_txt[1].strip('\n'), all_line_txt[2].strip('\n')]
+        except:
+            self.bull_codes = [CODE_HK_BULL, CODE_HK_BULL_BK1, CODE_HK_BULL_BK2]
+
+        try:
+            file = open(FILE_BEAR_CODES, 'r')
+            all_line_txt = file.readlines()
+            self.bear_codes = [all_line_txt[0].strip('\n'), all_line_txt[1].strip('\n'), all_line_txt[2].strip('\n')]
+        except:
+            self.bear_codes = [CODE_HK_BEAR, CODE_HK_BEAR_BK1, CODE_HK_BEAR_BK2]
+
+        print(self.bull_codes[0])
+        print(self.bull_codes[1])
+        print(self.bull_codes[2])
+        print(self.bear_codes[0])
+        print(self.bear_codes[1])
+        print(self.bear_codes[2])
+
         self.watch_warrants = []
 
 
@@ -334,7 +358,7 @@ class brocker:
         hsi_animal_list = []
         ret_code, all_warrant = self.quote.get_stock_basicinfo("HK", stock_type='WARRANT')
         if ret_code != 0:
-            return -1, all_warrant
+            return -1, all_warrant, []
 
         hsi_animal_cnt = 0
         for i in range(0, len(all_warrant)):
@@ -352,7 +376,7 @@ class brocker:
             bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max + 500,
                                                                      steet_ratio, hsi_open)
             if bull_cnt < 0 or bear_cnt < 0:
-                return -1, []
+                return -1, [], []
 
         hsi_bull_ret = []
         hsi_bear_ret = []

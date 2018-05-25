@@ -5,20 +5,20 @@ from hk_magnet.ret_sender import *
 
 #### Customers
 
-CODE_HK_BULL     = 'HK.60139'
-CODE_HK_BULL_BK1 = 'HK.69194'
+CODE_HK_BULL     = 'HK.69194'
+CODE_HK_BULL_BK1 = 'HK.60139'
 CODE_HK_BULL_BK2 = 'HK.69055'
 
-CODE_HK_BEAR     = 'HK.68377'
-CODE_HK_BEAR_BK1 = 'HK.57333'
-CODE_HK_BEAR_BK2 = 'HK.62911'
+CODE_HK_BEAR     = 'HK.64011'
+CODE_HK_BEAR_BK1 = 'HK.63073'
+CODE_HK_BEAR_BK2 = 'HK.59022'
 
 TRADE_AMOUNT = 10
 
 #### Systems
 TIME_SET_REAL = 1
 TIME_SET_TEST = 2
-timesets = TIME_SET_TEST
+timesets = TIME_SET_REAL
 if timesets == TIME_SET_REAL:
     TIME_START_WORK    = '09:25:00'
     TIME_CONN_DEADLINE = '09:29:00'
@@ -82,7 +82,7 @@ FILE_BEAR_CODES = './bear.txt'
 class brocker:
     def __init__(self):
         self.quote = quote_api(HOST, PORT)
-        self.trade = trade_api(HOST, PORT, TRADE_TYPE_SIMU)
+        self.trade = trade_api(HOST, PORT, TRADE_TYPE_REAL)
         self.msg = ""
         try:
             file = open(FILE_UNLOCK_PASSWD, 'r')

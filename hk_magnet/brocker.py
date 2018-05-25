@@ -221,7 +221,7 @@ class brocker:
             self.rec_log("----Prepare Timeout")
             return ERR_PREP_TIMEOUT
 
-    def process(self):
+    def process_ori(self):
         ret = self.wait_for_start_work()
         if ret != RET_OK:
             self.rec_log("Wait for start ERR")
@@ -281,7 +281,65 @@ class brocker:
 
         return RET_OK
 
+    def process(self):
+        ret = self.wait_for_start_work()
+        if ret != RET_OK:
+            self.rec_log("Wait for start ERR")
+            return ret
 
+        ret = self.connect_quote()
+        if ret != RET_OK:
+            self.rec_log("Conn Quote ERR")
+            return ret
+
+        ret = self.connect_trade()
+        if ret != RET_OK:
+            self.rec_log("Conn Trade ERR")
+            return ret
+
+        #ret = self.check_date()
+        if ret != RET_OK:
+            self.rec_log("Check Date ERR")
+            return ret
+
+        #ret = self.check_prep_time()
+        if ret != RET_OK:
+            self.rec_log("Check Prep Time ERR")
+            return ret
+
+        #ret = self.wait_for_open_mkt()
+        if ret != RET_OK:
+            self.rec_log("Wait for open mkt ERR")
+            return ret
+
+        ret = self.decide_dir_test()
+        if ret != RET_OK:
+            self.rec_log("Decide Direction ERR")
+            return ret
+
+        ret = self.check_warrent()
+        if ret != RET_OK:
+            self.rec_log("Check Warrent ERR")
+            return ret
+
+        #ret = self.buy_warrent()
+        if ret != RET_OK:
+            self.rec_log("Buy Warrent ERR")
+            return ret
+
+        #ret = self.wait_for_timer()
+        if ret != RET_OK:
+            self.rec_log("Wait for Timer ERR")
+            return ret
+
+        #ret = self.sell_warrent()
+        if ret != RET_OK:
+            self.rec_log("Sell Warent ERR")
+            return ret
+
+        ##self.disconnect()
+
+        return RET_OK
 
 ## Process Level
     def wait_for_open_mkt(self):
@@ -358,7 +416,7 @@ class brocker:
         hsi_animal_list = []
         ret_code, all_warrant = self.quote.get_stock_basicinfo("HK", stock_type='WARRANT')
         if ret_code != 0:
-            return -1, all_warrant, []
+            return -1, [], []
 
         hsi_animal_cnt = 0
         for i in range(0, len(all_warrant)):
@@ -488,6 +546,78 @@ class brocker:
         else:
             return RET_ERR
 
+    def decide_dir_test(self):
+        success = False
+        self.rec_log("Decide Direction Test...")
+        ret = self.quote.subscribe(CODE_HK_HSI, DATA_TYPE_KDAY)
+        if ret != RET_OK:
+            return RET_ERR, 0
+
+        k_num = 2
+        while True:
+            ret, kline = self.quote.get_day_k(CODE_HK_HSI, k_num)
+            if ret != RET_OK:
+                success = False
+                break
+
+            last_close = int(kline["close"][k_num - 2])
+            new_open = last_close - 50
+            if last_close > 10000 and new_open > 10000:
+                success = True
+                break
+            else:
+                time.sleep(1)
+                continue
+
+        if success == True:
+            #### Search for Warrant Test, Not Enabled
+
+            ret, hsi_bull_ret_order, hsi_bear_ret_order = self.find_warrent(self, 500, 1000, 40, new_open)
+            if ret != RET_OK:
+                print("Find Warran Fail")
+
+            if new_open > last_close:
+                try:
+                    if ret == RET_OK:
+                        cnt = 0
+                        for i in range(0, len(hsi_bear_ret_order)):
+                            # self.watch_warrants.append(hsi_bear_ret_order[i])
+                            self.rec_log("Finding Warrant" + hsi_bear_ret_order[i])
+                            cnt += 1
+                            if cnt >= 3:
+                                break
+                except:
+                    print("Find Warran Fail")
+
+                dir = DIR_BEAR
+                self.warrent = self.bear_codes[0]
+                self.warrent_bk1 = self.bear_codes[1]
+                self.warrent_bk2 = self.bear_codes[2]
+            else:
+                try:
+                    if ret == RET_OK:
+                        cnt = 0
+                        for i in range(0, len(hsi_bull_ret_order)):
+                            # self.watch_warrants.append(hsi_bull_ret_order[i])
+                            self.rec_log("Finding Warrant" + hsi_bull_ret_order[i])
+                            cnt += 1
+                            if cnt >= 3:
+                                break
+                except:
+                    print("Find Warran Fail")
+
+                dir = DIR_BULL
+                self.warrent = self.bull_codes[0]
+                self.warrent_bk1 = self.bull_codes[1]
+                self.warrent_bk2 = self.bull_codes[2]
+
+            self.watch_warrants.append(self.warrent)
+            self.watch_warrants.append(self.warrent_bk1)
+            self.watch_warrants.append(self.warrent_bk2)
+
+            return RET_OK
+        else:
+            return RET_ERR
 
     def check_warrent(self):
         self.rec_log("Checking Warrent")

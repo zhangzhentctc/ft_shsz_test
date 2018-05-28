@@ -342,6 +342,7 @@ class brocker:
                 time.sleep(6)
                 para_code_list = []
                 para_code_list_cnt = 0
+        self.rec_log("filter Warrant: bull:" + str(bull_cnt) + "bear:" + str(bear_cnt))
 
         return bull_cnt, bear_cnt, hsi_animal_ret
 
@@ -367,6 +368,8 @@ class brocker:
                         hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
                         hsi_animal_cnt += 1
 
+        self.rec_log("Find Warrant: animal:" + str(hsi_animal_cnt))
+
         bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max, steet_ratio,
                                                                  hsi_open)
 
@@ -375,6 +378,8 @@ class brocker:
                                                                      steet_ratio, hsi_open)
             if bull_cnt < 0 or bear_cnt < 0:
                 return -1, [], []
+
+        self.rec_log("Find Warrant: bull:" + str(bull_cnt) + "bear:" + str(bear_cnt))
 
         hsi_bull_ret = []
         hsi_bear_ret = []

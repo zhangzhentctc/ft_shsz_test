@@ -468,9 +468,9 @@ class brocker:
                     print("Find Warran Fail")
 
                 dir = DIR_BEAR
-                self.warrent = CODE_HK_BEAR
-                self.warrent_bk1 = CODE_HK_BEAR_BK1
-                self.warrent_bk2 = CODE_HK_BEAR_BK2
+                self.warrent = self.bear_codes[0]
+                self.warrent_bk1 = self.bear_codes[1]
+                self.warrent_bk2 = self.bear_codes[2]
             else:
                 try:
                     if ret == RET_OK:
@@ -486,9 +486,9 @@ class brocker:
                     print("Find Warran Fail")
 
                 dir = DIR_BULL
-                self.warrent = CODE_HK_BULL
-                self.warrent_bk1 = CODE_HK_BULL_BK1
-                self.warrent_bk2 = CODE_HK_BULL_BK2
+                self.warrent = self.bull_codes[0]
+                self.warrent_bk1 = self.bull_codes[1]
+                self.warrent_bk2 = self.bull_codes[2]
 
             self.watch_warrants.append(self.warrent)
             self.watch_warrants.append(self.warrent_bk1)

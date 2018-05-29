@@ -308,7 +308,8 @@ class brocker:
         else:
             return RET_ERR
 
-    def filter_warrent(self, hsi_animal_list, recycle_min, recycle_max, steet_ratio, hsi_open):
+    def filter_warrent(self, hsi_animal_list, recycle_min, recycle_max, street_ratio, hsi_open):
+        print("Filter: " + str(recycle_min) + " " + str(recycle_max) + " " + str(street_ratio) + " " + str(hsi_open))
         para_code_list = []
         para_code_list_cnt = 0
         para_code_cnt = 0
@@ -324,25 +325,29 @@ class brocker:
                 ret_code, hsi_animals_shot = self.quote.get_market_snapshot(para_code_list)
                 if ret_code != 0:
                     return -1, -1, hsi_animals_shot
-
+                print("Group Process ")
                 # Filter
                 for j in range(0, len(hsi_animals_shot)):
                     warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
+                    print("Deep: " + str(warrant_deep))
                     if hsi_animals_shot["suspension"][j] == False and \
-                                    hsi_animals_shot["wrt_street_ratio"][j] < steet_ratio and \
+                                    hsi_animals_shot["wrt_street_ratio"][j] < street_ratio and \
                                     warrant_deep > recycle_min and \
                                     warrant_deep < recycle_max:
+                        print("Pass")
                         if hsi_animals_shot["wrt_type"][j] == "BEAR":
                             bear_cnt += 1
                         if hsi_animals_shot["wrt_type"][j] == "BULL":
                             bull_cnt += 1
                         hsi_animal_ret.append([hsi_animals_shot["code"][j], hsi_animals_shot["wrt_recovery_price"][j],
                                                hsi_animals_shot["wrt_type"][j], warrant_deep])
+                    else:
+                        print("Not Pass")
 
                 time.sleep(6)
                 para_code_list = []
                 para_code_list_cnt = 0
-        self.rec_log("filter Warrant: bull:" + str(bull_cnt) + "bear:" + str(bear_cnt))
+        self.rec_log("filter Warrant: " + str(hsi_animal_ret))
 
         return bull_cnt, bear_cnt, hsi_animal_ret
 

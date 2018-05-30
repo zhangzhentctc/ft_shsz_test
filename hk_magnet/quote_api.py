@@ -98,7 +98,7 @@ class quote_api:
         return RET_OK, ret_data["Bid"][0][0], ret_data["Ask"][0][0]
 
     def get_market_snapshot(self, code_list):
-        ret_code, ret_data = self.quote_ctx.get_market_snapshot(["HK.800000"])
+        ret_code, ret_data = self.quote_ctx.get_market_snapshot(code_list)
         if ret_code != 0:
             return RET_ERR, ret_data
         return RET_OK, ret_data

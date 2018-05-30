@@ -222,6 +222,7 @@ class brocker:
             return ERR_PREP_TIMEOUT
 
     def process(self):
+        #ret = RET_OK
         ret = self.wait_for_start_work()
         if ret != RET_OK:
             self.rec_log("Wait for start ERR")
@@ -329,20 +330,16 @@ class brocker:
                 # Filter
                 for j in range(0, len(hsi_animals_shot)):
                     warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
-                    print("Deep: " + str(warrant_deep))
                     if hsi_animals_shot["suspension"][j] == False and \
                                     hsi_animals_shot["wrt_street_ratio"][j] < street_ratio and \
                                     warrant_deep > recycle_min and \
                                     warrant_deep < recycle_max:
-                        print("Pass")
                         if hsi_animals_shot["wrt_type"][j] == "BEAR":
                             bear_cnt += 1
                         if hsi_animals_shot["wrt_type"][j] == "BULL":
                             bull_cnt += 1
                         hsi_animal_ret.append([hsi_animals_shot["code"][j], hsi_animals_shot["wrt_recovery_price"][j],
                                                hsi_animals_shot["wrt_type"][j], warrant_deep])
-                    else:
-                        print("Not Pass")
 
                 time.sleep(6)
                 para_code_list = []

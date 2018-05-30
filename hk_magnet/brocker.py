@@ -105,12 +105,6 @@ class brocker:
         except:
             self.bear_codes = [CODE_HK_BEAR, CODE_HK_BEAR_BK1, CODE_HK_BEAR_BK2]
 
-        print(self.bull_codes[0])
-        print(self.bull_codes[1])
-        print(self.bull_codes[2])
-        print(self.bear_codes[0])
-        print(self.bear_codes[1])
-        print(self.bear_codes[2])
 
         self.watch_warrants = []
 
@@ -310,7 +304,6 @@ class brocker:
             return RET_ERR
 
     def filter_warrent(self, hsi_animal_list, recycle_min, recycle_max, street_ratio, hsi_open):
-        print("Filter: " + str(recycle_min) + " " + str(recycle_max) + " " + str(street_ratio) + " " + str(hsi_open))
         para_code_list = []
         para_code_list_cnt = 0
         para_code_cnt = 0
@@ -326,7 +319,6 @@ class brocker:
                 ret_code, hsi_animals_shot = self.quote.get_market_snapshot(para_code_list)
                 if ret_code != 0:
                     return -1, -1, hsi_animals_shot
-                print("Group Process ")
                 # Filter
                 for j in range(0, len(hsi_animals_shot)):
                     warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
@@ -344,7 +336,6 @@ class brocker:
                 time.sleep(6)
                 para_code_list = []
                 para_code_list_cnt = 0
-        self.rec_log("filter Warrant: " + str(hsi_animal_ret))
 
         return bull_cnt, bear_cnt, hsi_animal_ret
 
@@ -370,7 +361,6 @@ class brocker:
                         hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
                         hsi_animal_cnt += 1
 
-        self.rec_log("Find Warrant: animal:" + str(hsi_animal_cnt))
 
         bull_cnt, bear_cnt, hsi_animal_ret = self.filter_warrent(hsi_animal_list, recycle_min, recycle_max, steet_ratio,
                                                                  hsi_open)
@@ -381,7 +371,6 @@ class brocker:
             if bull_cnt < 0 or bear_cnt < 0:
                 return -1, [], []
 
-        self.rec_log("Find Warrant: bull:" + str(bull_cnt) + "bear:" + str(bear_cnt))
 
         hsi_bull_ret = []
         hsi_bear_ret = []
@@ -453,43 +442,46 @@ class brocker:
             if new_open > last_close:
                 try:
                     if ret == RET_OK:
-                        self.rec_log("Find " + str(len(hsi_bear_ret_order)) + " Warrants ")
                         cnt = 0
                         for i in range(0, len(hsi_bear_ret_order)):
-                            # self.watch_warrants.append(hsi_bear_ret_order[i])
+                            self.watch_warrants.append(hsi_bear_ret_order[i])
                             self.rec_log("Finding Warrant Bear " + hsi_bear_ret_order[i])
                             cnt += 1
                             if cnt >= 3:
                                 break
                 except:
-                    print("Find Warran Fail")
+                    print("Find Warrant Fail")
+                    for code in self.bear_codes:
+                        self.watch_warrants.append(code)
+
 
                 dir = DIR_BEAR
-                self.warrent = self.bear_codes[0]
-                self.warrent_bk1 = self.bear_codes[1]
-                self.warrent_bk2 = self.bear_codes[2]
+                #self.warrent = self.bear_codes[0]
+                #self.warrent_bk1 = self.bear_codes[1]
+                #self.warrent_bk2 = self.bear_codes[2]
             else:
                 try:
                     if ret == RET_OK:
-                        self.rec_log("Find " + str(len(hsi_bull_ret_order)) + " Warrants ")
                         cnt = 0
                         for i in range(0, len(hsi_bull_ret_order)):
-                            # self.watch_warrants.append(hsi_bull_ret_order[i])
+                            self.watch_warrants.append(hsi_bull_ret_order[i])
                             self.rec_log("Finding Warrant Bull" + hsi_bull_ret_order[i])
                             cnt += 1
                             if cnt >= 3:
                                 break
                 except:
                     print("Find Warran Fail")
+                    for code in self.bull_codes:
+                        self.watch_warrants.append(code)
 
                 dir = DIR_BULL
-                self.warrent = self.bull_codes[0]
-                self.warrent_bk1 = self.bull_codes[1]
-                self.warrent_bk2 = self.bull_codes[2]
+                #self.warrent = self.bull_codes[0]
+                #self.warrent_bk1 = self.bull_codes[1]
+                #self.warrent_bk2 = self.bull_codes[2]
 
-            self.watch_warrants.append(self.warrent)
-            self.watch_warrants.append(self.warrent_bk1)
-            self.watch_warrants.append(self.warrent_bk2)
+            #self.watch_warrants.append(self.warrent)
+            #self.watch_warrants.append(self.warrent_bk1)
+            #self.watch_warrants.append(self.warrent_bk2)
 
             return RET_OK
         else:
@@ -604,7 +596,7 @@ class brocker:
 
     def make_order(self, warrent_code, dir):
         if dir == TRADE_SIDE_BUY:
-            trail_max = 4
+            trail_max = 3
             fail_wait_t = 1
         elif dir == TRADE_SIDE_SELL:
             trail_max = 100

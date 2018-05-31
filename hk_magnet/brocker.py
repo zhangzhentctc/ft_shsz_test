@@ -2,6 +2,7 @@ from hk_magnet.localtime_api import *
 from hk_magnet.quote_api import *
 from hk_magnet.trade_api import *
 from hk_magnet.ret_sender import *
+import time
 
 #### Customers
 
@@ -520,9 +521,10 @@ class brocker:
         waited_time = 0
         success = False
         intervel = 0.3
-        timeout = 6 * 60
+        timeout = 3 * 60
         ticks = int(timeout/intervel)
         while waited_time < ticks:
+            s_time = time.time()
             ret, bid_data, ask_data = self.quote.get_brokers(warrent_code)
             if ret != RET_OK:
                 print("API ERR")
@@ -553,13 +555,15 @@ class brocker:
                     ask_broker_id[0]== '9' and (ask_broker_id[1] == '7' or ask_broker_id[1] == '6'):
                     ask_ok = True
                     break
-
+            e_time = time.time()
             if bid_ok == True and ask_ok == True:
                 success = True
                 break
             else:
+                ### Sometimes, it times out when it is 09:56:00
                 time.sleep(intervel)
-                waited_time += 1
+                tick_cost = int((e_time - s_time)/intervel)
+                waited_time = waited_time + tick_cost + 1
 
                 ## DEBUG
                 if waited_time >= ticks:
@@ -705,91 +709,6 @@ class brocker:
 
                 if success == True:
                     break
-
-        if success == True:
-            return RET_OK
-        else:
-            return RET_ERR
-
-
-    def make_order_1st(self, warrent_code, dir):
-        self.rec_log("----Make Order")
-        ret = self.wait_for_open_warrent(warrent_code)
-        if ret != RET_OK:
-            return RET_ERR
-
-        ret, bid, ask = self.wait_for_narrow(warrent_code)
-        if ret != RET_OK:
-            return RET_ERR
-        ## Place Order
-        if dir == TRADE_SIDE_BUY:
-            price = ask
-        elif dir == TRADE_SIDE_SELL:
-            price = bid
-        else:
-            return RET_ERR
-
-
-
-
-        qty = TRADE_AMOUNT * 10000
-        self.rec_log("----Place Order: " + str(dir) + " " + str(warrent_code) + " " + str(price) + " " + str(qty))
-
-        ret, orderid = self.trade.place_order(price, qty, warrent_code, dir)
-        if ret != RET_OK:
-            return RET_ERR
-        success = False
-        ## Check
-        ret, status = self.trade.query_order(orderid)
-        if ret != RET_OK:
-            self.rec_log("Query Order ERR")
-            return RET_ERR
-
-        if status != 3:
-            self.rec_log("----Not dealt... wait for 3 seconds")
-            ## Wait for 3 s
-            time.sleep(3)
-            ## Check Again
-            ret, status = self.trade.query_order(orderid)
-            if ret != RET_OK:
-                return RET_ERR
-            ## Not Dealt
-            if status != 3:
-                self.rec_log("----Not dealt..." + str(status))
-
-                ## Wait for being dealt or is partly dealt
-                if status == 1 or status == 2:
-                    ret = self.wait_for_open_warrent(warrent_code)
-                    if ret != RET_OK:
-                        return RET_ERR
-
-                    ret, bid, ask = self.wait_for_narrow(warrent_code)
-                    if ret != RET_OK:
-                        return RET_ERR
-
-                    if dir == TRADE_SIDE_BUY:
-                        price = ask
-                    elif dir == TRADE_SIDE_SELL:
-                        price = bid
-
-                    self.rec_log(
-                        "----Modify Price " + str(dir) + " " + str(warrent_code) + " " + str(price) + " " + str(qty))
-                    ret = self.trade.modify(price, qty, orderid)
-                    if ret != RET_OK:
-                        return RET_ERR
-                    time.sleep(3)
-                    ret, status = self.trade.query_order(orderid)
-                    if ret != RET_OK:
-                        return RET_ERR
-                    ## Not Dealt
-                    if status != 3:
-                        self.rec_log("Not Dealt. Big ERR!!!!")
-                        return ERR_NOT_DEALT
-                    else:
-                        success = True
-        ## Dealt
-        else:
-            success = True
 
         if success == True:
             return RET_OK

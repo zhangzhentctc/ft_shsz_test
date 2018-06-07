@@ -48,6 +48,7 @@ TIME_CMP_SMALLER = -1
 DATA_TYPE_QUO = "QUOTE"
 DATA_TYPE_BROKER = "BROKER"
 DATA_TYPE_KDAY = "K_DAY"
+DATA_TYPE_1MIN = "K_1M"
 DATA_TYPE_BOOK = "ORDER_BOOK"
 
 DIR_BEAR = -1
@@ -216,6 +217,18 @@ class brocker:
             self.rec_log("----Prepare Timeout")
             return ERR_PREP_TIMEOUT
 
+    def store_data(self):
+        self.rec_log("Store Data...")
+        ret, data_k1min = self.quote.get_day_k(CODE_HK_FUTURE, 31,DATA_TYPE_QUO)
+        if ret != RET_OK:
+            return RET_ERR
+        ## Store into File
+        l = localtime_api()
+        today_date = l.get_local_date()
+        data_k1min.to_csv("C:\\1mk_" + today_date + ".csv", index=False)
+        return RET_OK
+
+
     def process(self):
         #ret = RET_OK
         ret = self.wait_for_start_work()
@@ -273,6 +286,10 @@ class brocker:
             self.rec_log("Sell Warent ERR")
             return ret
 
+        ret = self.store_data()
+        if ret != RET_OK:
+            self.rec_log("Store Data ERR")
+            return ret
         ##self.disconnect()
 
         return RET_OK
@@ -285,6 +302,11 @@ class brocker:
         ret = self.quote.subscribe(CODE_HK_FUTURE, DATA_TYPE_QUO)
         if ret != RET_OK:
             return RET_ERR, 0
+
+        ret = self.quote.subscribe(CODE_HK_FUTURE, DATA_TYPE_1MIN)
+        if ret != RET_OK:
+            return RET_ERR, 0
+
         while True:
             ret, data_time = self.quote.get_hkfuture_time()
             if ret != RET_OK:
@@ -436,7 +458,7 @@ class brocker:
         if success == True:
             #### Search for Warrant Test, Not Enabled
             try:
-                ret, hsi_bull_ret_order, hsi_bear_ret_order = self.find_warrent(500, 1000, 40, new_open)
+                ret, hsi_bull_ret_order, hsi_bear_ret_order = self.find_warrent(300, 700, 50, new_open)
             except:
                 print("Find Warran Fail")
 

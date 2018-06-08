@@ -345,10 +345,12 @@ class brocker:
                 # Filter
                 for j in range(0, len(hsi_animals_shot)):
                     warrant_deep = abs(hsi_animals_shot["wrt_recovery_price"][j] - hsi_open)
+
                     if hsi_animals_shot["suspension"][j] == False and \
                                     hsi_animals_shot["wrt_street_ratio"][j] < street_ratio and \
                                     warrant_deep > recycle_min and \
-                                    warrant_deep < recycle_max:
+                                    warrant_deep < recycle_max and \
+                                    hsi_animals_shot["last_price"][j] > 0.01 :
                         if hsi_animals_shot["wrt_type"][j] == "BEAR":
                             bear_cnt += 1
                         if hsi_animals_shot["wrt_type"][j] == "BULL":

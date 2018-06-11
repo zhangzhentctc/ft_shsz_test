@@ -219,7 +219,7 @@ class brocker:
 
     def store_data(self):
         self.rec_log("Store Data...")
-        ret, data_k1min = self.quote.get_day_k(CODE_HK_FUTURE, 31,DATA_TYPE_QUO)
+        ret, data_k1min = self.quote.get_day_k(CODE_HK_FUTURE, 31, DATA_TYPE_1MIN)
         if ret != RET_OK:
             return RET_ERR
         ## Store into File

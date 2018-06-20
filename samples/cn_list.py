@@ -7,11 +7,12 @@ class broker:
 
     def connect_api(self):
         self.quote_ctx = OpenQuoteContext(host=self.api_svr_ip, port=self.api_svr_port)
-
+        self.tradehk_ctx = OpenHKTradeContext(self.api_svr_ip, self.api_svr_port)
 
     def get_cn_list(self):
         cn_list = []
         market = "SH"
+        market = "HK"
         plate_class = "ALL"
 
         ret_code, ret_data = self.quote_ctx.get_plate_list( market, plate_class)
@@ -38,6 +39,36 @@ class broker:
         if ret_code != 0:
             return -1, []
         return 0, ret_data
+
+    def find_warrent(self):
+        ret_code, ret_data = self.quote_ctx.get_stock_basicinfo("HK", stock_type='WARRANT')
+        if ret_code != 0:
+            return -1, cn_list
+        print("Get WARRENT Done.")
+        print(ret_data)
+
+    def get_acc_info(self):
+        ret_code, ret_data = self.tradehk_ctx.accinfo_query(0)
+        if ret_code != 0:
+            print("Fail")
+        print(ret_data)
+        try:
+            print(ret_data["ZQSZ"][0])
+            print(ret_data["KQXJ"][0])
+            print(ret_data["ZSJE"][0])
+            print(ret_data["YYJDE"][0])
+            print(ret_data["Power"][0])
+        except:
+            print("???")
+
+
+
+        ret_code, ret_data = self.tradehk_ctx.position_list_query(strcode='', stocktype='', pl_ratio_min='', pl_ratio_max='',
+                                                             envtype=0)
+        if ret_code != 0:
+            print("Fail")
+        print(ret_data)
+
 
 
 
@@ -126,11 +157,16 @@ if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'
     API_LO_SVR_IP = '127.0.0.1'
     API_SVR_PORT = 11111
-    b = broker(API_LO_SVR_IP, API_SVR_PORT)
+    b = broker(API_RM_SVR_IP, API_SVR_PORT)
     b.connect_api()
-    #ret, cn_list = b.get_cn_list()
-    #if ret != -1:
-        #print(cn_list)
+    b.get_acc_info()
+    exit(0)
+
+    ret, cn_list = b.find_warrent()
+    if ret != -1:
+        print(cn_list)
+
+
     start = '2005-01-04'
     end = '2016-04-29'
     code = 'SZ.000639'

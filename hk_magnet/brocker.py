@@ -3,7 +3,7 @@ from hk_magnet.quote_api import *
 from hk_magnet.trade_api import *
 from hk_magnet.ret_sender import *
 import time
-
+import math
 #### Customers
 
 CODE_HK_BULL     = 'HK.69194'
@@ -109,6 +109,8 @@ class brocker:
 
 
         self.watch_warrants = []
+        self.real_power = -1
+        self.amount = TRADE_AMOUNT
 
 
     def rec_log(self, str):
@@ -202,6 +204,18 @@ class brocker:
             self.rec_log("----Bad day")
             return ERR_NOT_TRADE_DAY
 
+    def check_acc(self):
+        self.rec_log("Check Account ...")
+        ret, accinfo = self.trade.query_accinfo()
+        if ret != RET_OK:
+            return RET_ERR, -1
+        deposit_val = accinfo["ZCJZ"][0]
+        stock_val = accinfo["ZQSZ"][0]
+        real_power = deposit_val - stock_val
+        self.real_power = real_power
+        return RET_OK, real_power
+
+
     def check_prep_time(self):
         self.rec_log("Check Prepare Time...")
         ret = self.quote.subscribe(CODE_HK_FUTURE, DATA_TYPE_QUO)
@@ -246,9 +260,16 @@ class brocker:
             self.rec_log("Conn Trade ERR")
             return ret
 
+        ret = self.check_acc()
+        if ret != RET_OK:
+            self.rec_log("Check Account ERR")
+            self.store_data()
+            return ret
+
         ret = self.check_date()
         if ret != RET_OK:
             self.rec_log("Check Date ERR")
+            self.store_data()
             return ret
 
         #ret = self.check_prep_time()
@@ -259,37 +280,39 @@ class brocker:
         ret = self.wait_for_open_mkt()
         if ret != RET_OK:
             self.rec_log("Wait for open mkt ERR")
+            self.store_data()
             return ret
 
         ret = self.decide_dir()
         if ret != RET_OK:
             self.rec_log("Decide Direction ERR")
+            self.store_data()
             return ret
 
         ret = self.check_warrent()
         if ret != RET_OK:
             self.rec_log("Check Warrent ERR")
+            self.store_data()
             return ret
 
         ret = self.buy_warrent()
         if ret != RET_OK:
             self.rec_log("Buy Warrent ERR")
+            self.store_data()
             return ret
 
         ret = self.wait_for_timer()
         if ret != RET_OK:
             self.rec_log("Wait for Timer ERR")
+            self.store_data()
             return ret
 
         ret = self.sell_warrent()
         if ret != RET_OK:
             self.rec_log("Sell Warent ERR")
+            self.store_data()
             return ret
 
-        ret = self.store_data()
-        if ret != RET_OK:
-            self.rec_log("Store Data ERR")
-            return ret
         ##self.disconnect()
 
         return RET_OK
@@ -460,7 +483,7 @@ class brocker:
         if success == True:
             #### Search for Warrant Test, Not Enabled
             try:
-                ret, hsi_bull_ret_order, hsi_bear_ret_order = self.find_warrent(300, 700, 50, new_open)
+                ret, hsi_bull_ret_order, hsi_bear_ret_order = self.find_warrent(300, 1000, 50, new_open)
             except:
                 print("Find Warran Fail")
 
@@ -636,7 +659,8 @@ class brocker:
         success = False
         flag_modify_fail = False
         dealt = 0
-        qty = TRADE_AMOUNT * 10000
+        bunch_cnt = 10000
+        qty = self.amount * bunch_cnt
         while trail < trail_max:
             self.rec_log("----Make Order")
             ## Place Order
@@ -650,6 +674,14 @@ class brocker:
 
             if dir == TRADE_SIDE_BUY:
                 price = ask
+                ## If rich enough.
+                if qty * price >= self.real_power and self.real_power!= -1:
+                    new_amount = math.floor((self.real_power/(price + 0.003))/bunch_cnt)
+                    self.amount = new_amount
+                    new_qty = new_amount * bunch_cnt
+                    self.rec_log("----Quantity Change from : " + str(qty) + " to: " + str(new_qty))
+                    qty = new_qty
+
             elif dir == TRADE_SIDE_SELL:
                 price = bid
             else:

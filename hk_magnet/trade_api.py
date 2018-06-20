@@ -82,6 +82,21 @@ class trade_api:
             return RET_ERR, dealt_qty
         return RET_OK, dealt_qty
 
+    def query_accinfo(self):
+        ret_code, ret_data = self.tradehk_ctx.accinfo_query(self.envtype)
+        if ret_code != RET_OK:
+            return RET_ERR, ret_data
+        return RET_OK, ret_data
+
+    def query_position(self):
+        ret_code, ret_data = self.tradehk_ctx.position_list_query(strcode='', stocktype='', pl_ratio_min='',
+                                                                  pl_ratio_max='',
+                                                                  envtype=self.envtype)
+        if ret_code != RET_OK:
+            return RET_ERR, ret_data
+        return RET_OK, ret_data
+
+
 ######## TEST
 if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'

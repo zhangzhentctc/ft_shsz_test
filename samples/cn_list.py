@@ -8,6 +8,7 @@ class broker:
     def connect_api(self):
         self.quote_ctx = OpenQuoteContext(host=self.api_svr_ip, port=self.api_svr_port)
         self.tradehk_ctx = OpenHKTradeContext(self.api_svr_ip, self.api_svr_port)
+        ret_code, ret_data = self.tradehk_ctx.unlock_trade("584679")
 
     def get_cn_list(self):
         cn_list = []
@@ -60,6 +61,8 @@ class broker:
             print(ret_data["Power"][0])
         except:
             print("???")
+        if ret_data["ZCJZ"][0] > 10000:
+            print("OK")
 
 
 
@@ -157,7 +160,7 @@ if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'
     API_LO_SVR_IP = '127.0.0.1'
     API_SVR_PORT = 11111
-    b = broker(API_RM_SVR_IP, API_SVR_PORT)
+    b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
     b.get_acc_info()
     exit(0)

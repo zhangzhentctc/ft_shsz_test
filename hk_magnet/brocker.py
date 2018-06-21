@@ -208,12 +208,12 @@ class brocker:
         self.rec_log("Check Account ...")
         ret, accinfo = self.trade.query_accinfo()
         if ret != RET_OK:
-            return RET_ERR, -1
+            return RET_ERR
         deposit_val = accinfo["ZCJZ"][0]
         stock_val = accinfo["ZQSZ"][0]
         real_power = deposit_val - stock_val
         self.real_power = real_power
-        return RET_OK, real_power
+        return RET_OK
 
 
     def check_prep_time(self):

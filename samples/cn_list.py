@@ -10,6 +10,53 @@ class broker:
         self.tradehk_ctx = OpenHKTradeContext(self.api_svr_ip, self.api_svr_port)
         ret_code, ret_data = self.tradehk_ctx.unlock_trade("584679")
 
+    def get_day_k(self ):
+        code = 'HK.800000'
+        num = 999
+        ktype = "K_15M"
+        ret = self.quote_ctx.subscribe(code, ktype)
+        if ret != 0:
+            print("subscribe fail")
+            return -1, 0
+        #code time_key open close high low  volume      turnover  pe_ratio  turnover_rate
+        ret_code, ret_data = self.quote_ctx.get_cur_kline(code, num, ktype, autype='qfq')
+        if ret_code != 0:
+            print(ret_data)
+            return -1, ret_data
+        print(ret_data)
+        ret_data["MA4"] = 0.0
+        ret_data["MA4_I"] = 0.0
+        ret_data["MA4_R_T3"] = 0.0
+        for i in range(3, num):
+            ret_data.iloc[i, 10] = ( ret_data.iloc[i, 3] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+            ret_data.iloc[i, 11] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+
+        for i in range(6, num):
+            ret_data.iloc[i, 12] = ( ret_data.iloc[i - 3, 11] - ret_data.iloc[i, 11])/3
+
+
+        for i in range(4, num):
+            date_time_p = ret_data.iloc[i - 1, 1]
+            date_p = date_time_p.split(" ")[0]
+            date_time_c = ret_data.iloc[i, 1]
+            date_c = date_time_c.split(" ")[0]
+            print(date_p + ' ' + date_c)
+            if date_c == date_p:
+                print("=")
+            else:
+                print("!=")
+                close_p = ret_data.iloc[i - 1, 3]
+                open_c  = ret_data.iloc[i, 2]
+                gap = open_c - close_p
+                ma4_r = ret_data.iloc[i, 12]
+                rst = ret_data.iloc[i, 3] - ret_data.iloc[i, 2]
+                print("**** " + date_p)
+                print("     " + "Gap: " + str(gap))
+                print("     " + "Rat: " + str(ma4_r))
+                print("     " + "Ret: " + str(rst))
+
+        return 0, ret_data
+
     def get_cn_list(self):
         cn_list = []
         market = "SH"
@@ -162,8 +209,10 @@ if __name__ == "__main__":
     API_SVR_PORT = 11111
     b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
-    b.get_acc_info()
+    b.get_day_k()
     exit(0)
+    b.get_acc_info()
+
 
     ret, cn_list = b.find_warrent()
     if ret != -1:

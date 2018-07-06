@@ -14,16 +14,18 @@ class broker:
         code = 'HK.800000'
         num = 999
         ktype = "K_15M"
-        ret = self.quote_ctx.subscribe(code, ktype)
+        sum = 0
+        ret, ret_date = self.quote_ctx.subscribe(code, ktype)
         if ret != 0:
             print("subscribe fail")
+            print(ret_date)
             return -1, 0
         #code time_key open close high low  volume      turnover  pe_ratio  turnover_rate
         ret_code, ret_data = self.quote_ctx.get_cur_kline(code, num, ktype, autype='qfq')
         if ret_code != 0:
             print(ret_data)
             return -1, ret_data
-        print(ret_data)
+
         ret_data["MA4"] = 0.0
         ret_data["MA4_I"] = 0.0
         ret_data["MA4_R_T3"] = 0.0
@@ -32,7 +34,7 @@ class broker:
             ret_data.iloc[i, 11] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
 
         for i in range(6, num):
-            ret_data.iloc[i, 12] = ( ret_data.iloc[i - 3, 11] - ret_data.iloc[i, 11])/3
+            ret_data.iloc[i, 12] = ( ret_data.iloc[i, 11] - ret_data.iloc[i - 3, 11] )/3
 
 
         for i in range(4, num):
@@ -40,21 +42,34 @@ class broker:
             date_p = date_time_p.split(" ")[0]
             date_time_c = ret_data.iloc[i, 1]
             date_c = date_time_c.split(" ")[0]
-            print(date_p + ' ' + date_c)
             if date_c == date_p:
-                print("=")
+                pass
             else:
-                print("!=")
                 close_p = ret_data.iloc[i - 1, 3]
                 open_c  = ret_data.iloc[i, 2]
                 gap = open_c - close_p
                 ma4_r = ret_data.iloc[i, 12]
                 rst = ret_data.iloc[i, 3] - ret_data.iloc[i, 2]
-                print("**** " + date_p)
+                if gap < 0:
+                    if ma4_r > 0:
+                        trade_ret = rst
+                    else:
+                        trade_ret = 0
+                else:
+                    if ma4_r > 0:
+                        trade_ret = 0
+                    else:
+                        trade_ret = rst * (-1)
+
+
+
+                print("**** " + date_c)
                 print("     " + "Gap: " + str(gap))
                 print("     " + "Rat: " + str(ma4_r))
                 print("     " + "Ret: " + str(rst))
-
+                print("     " + "Trade Result " + str(trade_ret))
+                sum += trade_ret
+        print("Total: " + str(sum))
         return 0, ret_data
 
     def get_cn_list(self):
@@ -210,6 +225,12 @@ if __name__ == "__main__":
     b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
     b.get_day_k()
+    #start = '2005-01-04'
+    #end = '2016-04-29'
+    #ret, k = b.get_history_k("HK.800000", start, end)
+    #if ret != -1:
+    #    print("ok")
+    #print(k)
     exit(0)
     b.get_acc_info()
 

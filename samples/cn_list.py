@@ -1,5 +1,6 @@
 from futuquant import *
 import time
+import math
 class broker:
     def __init__(self, api_svr_ip, api_svr_port):
         self.api_svr_ip = api_svr_ip
@@ -71,6 +72,98 @@ class broker:
                 sum += trade_ret
         print("Total: " + str(sum))
         return 0, ret_data
+
+    def test_boll(self ):
+        # Get K
+        code = 'HK.800000'
+        num = 999
+        ktype = "K_15M"
+        sum = 0
+        ret, ret_date = self.quote_ctx.subscribe(code, ktype)
+        if ret != 0:
+            print("subscribe fail")
+            print(ret_date)
+            return -1, 0
+        #code time_key open close high low  volume      turnover  pe_ratio  turnover_rate
+        ret_code, ret_data = self.quote_ctx.get_cur_kline(code, num, ktype, autype='qfq')
+        if ret_code != 0:
+            print(ret_data)
+            return -1, ret_data
+
+        # BOLL Paras
+        boll_n = 20
+        boll_k = 2
+
+        pos_k_close = 3
+        pos_k_open = 2
+        pos_boll_mid = 10
+        pos_boll_upper = 11
+        pos_boll_lower = 12
+        pos_boll_mid_i = 13
+        pos_boll_upper_i = 14
+        pos_boll_lower_i = 15
+        ret_data["BOLL_MID"] = 0.0
+        ret_data["BOLL_UPPER"] = 0.0
+        ret_data["BOLL_LOWER"] = 0.0
+        ret_data["BOLL_MID_I"] = 0.0
+        ret_data["BOLL_UPPER_I"] = 0.0
+        ret_data["BOLL_LOWER_I"] = 0.0
+        for i in range(boll_n - 1, num):
+            # 1. MA
+            ma = 0
+            for j in range(i - boll_n + 1, i - 1):
+                ma += ret_data.iloc[j, pos_k_close] / boll_n
+
+            ma_i = ma + ret_data.iloc[i, pos_k_open] / boll_n
+            ma   = ma + ret_data.iloc[i, pos_k_close] / boll_n
+
+
+            # 2. Sigma
+            val = 0
+            for j in range(i - boll_n + 1, i):
+                val += ((ret_data.iloc[j, pos_k_close] - ma)**2)/boll_n
+            sigma = math.sqrt(val)
+
+            val = 0
+            for j in range(i - boll_n + 1, i - 1):
+                val += ((ret_data.iloc[j, pos_k_close] - ma_i)**2)/boll_n
+            val += ((ret_data.iloc[i, pos_k_open] - ma_i) ** 2) / boll_n
+            sigma_i = math.sqrt(val)
+
+            # 3. Upper & Lower
+            upper = ma + boll_k * sigma
+            lower = ma - boll_k * sigma
+
+            upper_i = ma_i + boll_k * sigma_i
+            lower_i = ma_i - boll_k * sigma_i
+
+            ret_data.iloc[i, pos_boll_mid] = ma
+            ret_data.iloc[i, pos_boll_upper] = upper
+            ret_data.iloc[i, pos_boll_lower] = lower
+
+            ret_data.iloc[i, pos_boll_mid_i] = ma_i
+            ret_data.iloc[i, pos_boll_upper_i] = upper_i
+            ret_data.iloc[i, pos_boll_lower_i] = lower_i
+
+
+        ## Strategy and Test
+        ## Let's see a new day opens on which part
+        for i in range(boll_n - 1, num):
+            date_time_p = ret_data.iloc[i - 1, 1]
+            date_p = date_time_p.split(" ")[0]
+            date_time_c = ret_data.iloc[i, 1]
+            date_c = date_time_c.split(" ")[0]
+            if date_c == date_p:
+                pass
+            else:
+                open_val = ret_data.iloc[i, pos_k_open]
+                rate = (open_val - ret_data.iloc[i, pos_boll_lower_i])/(ret_data.iloc[i, pos_boll_upper_i] - ret_data.iloc[i, pos_boll_lower_i])
+                print("***** " + str(date_c))
+                print("***** open at " + str(rate))
+
+
+        return 0, ret_data
+
 
     def get_cn_list(self):
         cn_list = []
@@ -224,7 +317,7 @@ if __name__ == "__main__":
     API_SVR_PORT = 11111
     b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
-    b.get_day_k()
+    b.test_boll()
     #start = '2005-01-04'
     #end = '2016-04-29'
     #ret, k = b.get_history_k("HK.800000", start, end)

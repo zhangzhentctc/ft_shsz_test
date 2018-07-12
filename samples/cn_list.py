@@ -87,6 +87,7 @@ class broker:
         ret_data["MA4"] = 0.0
         ret_data["MA4_I"] = 0.0
         ret_data["MA4_R_T3"] = 0.0
+        ret_data["trade_result"] = 0.0
         for i in range(3, num):
             ret_data.iloc[i, 10] = ( ret_data.iloc[i, 3] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
             ret_data.iloc[i, 11] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
@@ -114,8 +115,8 @@ class broker:
                     pass
                 ## Di Kai
                 else:
-                    trade_ret = rst 
-
+                    trade_ret = rst
+                ret_data.iloc[i, 13] = trade_ret
                 print("**** " + date_c)
                 print("     " + "Gap: " + str(gap))
                 print("     " + "Rat: " + str(ma4_r))
@@ -370,8 +371,9 @@ if __name__ == "__main__":
     b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
     #b.test_boll()
-    start = '2015-07-10'
-    end = '2016-07-10'
+    start = '2016-07-10'
+    end = '2018-07-10'
+    ret, k = b.test_magment_15M_history(start, end)
     #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")
     #if ret != -1:
     #    print("ok")
@@ -392,7 +394,7 @@ if __name__ == "__main__":
     ret, k = b.get_history_k(code, start, end)
     if ret != -1:
         print("ok")
-    print(k)
+    #print(k)
 
     #fitting_shape_cup(k)
 

@@ -73,6 +73,58 @@ class broker:
         print("Total: " + str(sum))
         return 0, ret_data
 
+    def test_magment_15M_history(self, start, end):
+        code = 'HK.800000'
+
+        ktype = "K_15M"
+        sum = 0
+        ret, ret_data = self.get_history_k(code, start, end, ktype)
+        if ret != 0:
+            print("get history fail")
+            print(ret_data)
+            return -1, 0
+        num = len(ret_data)
+        ret_data["MA4"] = 0.0
+        ret_data["MA4_I"] = 0.0
+        ret_data["MA4_R_T3"] = 0.0
+        for i in range(3, num):
+            ret_data.iloc[i, 10] = ( ret_data.iloc[i, 3] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+            ret_data.iloc[i, 11] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+
+        for i in range(6, num):
+            ret_data.iloc[i, 12] = ( ret_data.iloc[i, 11] - ret_data.iloc[i - 3, 11] )/3
+
+
+        for i in range(4, num):
+            date_time_p = ret_data.iloc[i - 1, 1]
+            date_p = date_time_p.split(" ")[0]
+            date_time_c = ret_data.iloc[i, 1]
+            date_c = date_time_c.split(" ")[0]
+            if date_c == date_p:
+                pass
+            else:
+                close_p = ret_data.iloc[i - 1, 3]
+                open_c  = ret_data.iloc[i, 2]
+                gap = open_c - close_p
+                ma4_r = ret_data.iloc[i, 12]
+                rst = ret_data.iloc[i, 3] - ret_data.iloc[i, 2]
+                ## Gao Kai
+                if gap > 0:
+                    trade_ret = rst * (-1)
+                    pass
+                ## Di Kai
+                else:
+                    trade_ret = rst 
+
+                print("**** " + date_c)
+                print("     " + "Gap: " + str(gap))
+                print("     " + "Rat: " + str(ma4_r))
+                print("     " + "Ret: " + str(rst))
+                print("     " + "Trade Result " + str(trade_ret))
+                sum += trade_ret
+        print("Total: " + str(sum))
+        return 0, ret_data
+
     def test_boll(self ):
         # Get K
         code = 'HK.800000'
@@ -317,13 +369,14 @@ if __name__ == "__main__":
     API_SVR_PORT = 11111
     b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
-    b.test_boll()
-    #start = '2005-01-04'
-    #end = '2016-04-29'
-    #ret, k = b.get_history_k("HK.800000", start, end)
+    #b.test_boll()
+    start = '2015-07-10'
+    end = '2016-07-10'
+    #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")
     #if ret != -1:
     #    print("ok")
-    #print(k)
+    print(k)
+
     exit(0)
     b.get_acc_info()
 

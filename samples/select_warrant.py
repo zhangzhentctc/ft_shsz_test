@@ -82,6 +82,22 @@ class broker:
 
         return bull_cnt, bear_cnt, hsi_animal_ret
 
+    def test_name(self, name):
+        ret = False
+        if len(name) != 10:
+            ret = False
+        else:
+            for i in range(0, len(name)):
+                # 恒指
+                if name[0] == "恒" and name[1] == "指":
+                    # 牛/熊
+                    if name[6] == "牛" or name[6] == "熊":
+                        if name[8] == ".":
+                            if name[7].isalpha() and name[9].isalpha():
+                                ret = True
+        if ret == False:
+            print("Bad name: " + name)
+        return ret
 
     def find_warrent(self, recycle_min, recycle_max, steet_ratio, hsi_open = 0):
         ret_code, hsi_shot = self.quote_ctx.get_market_snapshot(["HK.800000"])
@@ -100,8 +116,11 @@ class broker:
         for i in range(0, len(all_warrant)):
             if all_warrant["owner_stock_code"][i] == "HK.800000" and all_warrant["lot_size"][i] == 10000 and \
                 (all_warrant["stock_child_type"][i] == "BULL" or all_warrant["stock_child_type"][i] == "BEAR"):
+                if self.test_name(all_warrant["name"][i]) == False:
+                    continue
                 for holder_num in range(0, len(warrant_holder_list)):
                     if warrant_holder_list[holder_num] in all_warrant["name"][i]:
+
                         hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
                         hsi_animal_cnt += 1
 
@@ -259,7 +278,7 @@ if __name__ == "__main__":
     API_RM_SVR_IP = '119.29.141.202'
     API_LO_SVR_IP = '127.0.0.1'
     API_SVR_PORT = 11111
-    b = broker(API_RM_SVR_IP, API_SVR_PORT)
+    b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
     ret, hsi_bull_ret_order, hsi_bear_ret_order = b.find_warrent(500, 600, 40, 0)
     if ret == 0:

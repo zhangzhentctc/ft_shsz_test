@@ -387,6 +387,22 @@ class brocker:
 
         return bull_cnt, bear_cnt, hsi_animal_ret
 
+    def check_warrant_name(self, name):
+        ret = False
+        if len(name) != 10:
+            ret = False
+        else:
+            for i in range(0, len(name)):
+                # 恒指
+                if name[0] == "恒" and name[1] == "指":
+                    # 牛/熊
+                    if name[6] == "牛" or name[6] == "熊":
+                        if name[8] == ".":
+                            if name[7].isalpha() and name[9].isalpha():
+                                ret = True
+
+        return ret
+
     def find_warrent(self, recycle_min, recycle_max, steet_ratio, hsi_open):
         #ret_code, hsi_shot = self.quote.get_market_snapshot(["HK.800000"])
         #if ret_code != 0:
@@ -404,6 +420,8 @@ class brocker:
         for i in range(0, len(all_warrant)):
             if all_warrant["owner_stock_code"][i] == "HK.800000" and all_warrant["lot_size"][i] == 10000 and \
                     (all_warrant["stock_child_type"][i] == "BULL" or all_warrant["stock_child_type"][i] == "BEAR"):
+                if self.check_warrant_name(all_warrant["name"][i]) == False:
+                    continue
                 for holder_num in range(0, len(warrant_holder_list)):
                     if warrant_holder_list[holder_num] in all_warrant["name"][i]:
                         hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])

@@ -110,12 +110,15 @@ class broker:
         for i in range(6, num):
             ret_data.iloc[i, pos_ma4_r] = ( ret_data.iloc[i, pos_ma4_i] - ret_data.iloc[i - 3, pos_ma4_i] )/3
 
-
+        sum_up = 0
+        sum_down = 0
         for i in range(4, num):
             date_time_p = ret_data.iloc[i - 1, 1]
             date_p = date_time_p.split(" ")[0]
             date_time_c = ret_data.iloc[i, 1]
             date_c = date_time_c.split(" ")[0]
+
+
             if date_c == date_p:
                 pass
             else:
@@ -131,11 +134,14 @@ class broker:
                         min = low
                     if high >  max:
                         max = high
+                    print(ret_data.iloc[buy_bar_num, 1])
 
                 float_up = max - buy_price
                 float_down = min - buy_price
-
-                print("**** " + date_c)
+                sum_up += float_up
+                sum_down += float_down
+                date = ret_data.iloc[buy_bar_num, 1]
+                print("**** " + date_c + " " + str(date))
                 print("     " + "UP  : " + str(float_up))
                 print("     " + "DOWN: " + str(float_down))
 

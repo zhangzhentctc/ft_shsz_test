@@ -1,6 +1,8 @@
 from futuquant import *
 import time
 import math
+import random
+
 class broker:
     def __init__(self, api_svr_ip, api_svr_port):
         self.api_svr_ip = api_svr_ip
@@ -71,6 +73,75 @@ class broker:
                 print("     " + "Trade Result " + str(trade_ret))
                 sum += trade_ret
         print("Total: " + str(sum))
+        return 0, ret_data
+
+    def test_random_5M_history(self, start, end):
+        code = 'HK.800000'
+        # #66 5mK per day
+        ktype = "K_5M"
+
+        ## BEAR
+        type = -1
+
+        sum = 0
+        #  code time_key  open  close  high   low  pe_ratio  turnover_rate volume   turnover  change_rate MA4  MA4_I  MA4_R_T3  trade_result
+        pos_open = 2
+        pos_close = 3
+        pos_high = 4
+        pos_low = 5
+        pos_ma4 = 11
+        pos_ma4_i = 12
+        pos_ma4_r = 13
+        pos_test_result = 14
+        ret, ret_data = self.get_history_k(code, start, end, ktype)
+        if ret != 0:
+            print("get history fail")
+            print(ret_data)
+            return -1, 0
+        num = len(ret_data)
+        ret_data["MA4"] = 0.0
+        ret_data["MA4_I"] = 0.0
+        ret_data["MA4_R_T3"] = 0.0
+        ret_data["trade_result"] = 0.0
+        for i in range(3, num):
+            ret_data.iloc[i, pos_ma4] = ( ret_data.iloc[i, 3] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+            ret_data.iloc[i, pos_ma4_i] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+
+        for i in range(6, num):
+            ret_data.iloc[i, pos_ma4_r] = ( ret_data.iloc[i, pos_ma4_i] - ret_data.iloc[i - 3, pos_ma4_i] )/3
+
+
+        for i in range(4, num):
+            date_time_p = ret_data.iloc[i - 1, 1]
+            date_p = date_time_p.split(" ")[0]
+            date_time_c = ret_data.iloc[i, 1]
+            date_c = date_time_c.split(" ")[0]
+            if date_c == date_p:
+                pass
+            else:
+                cnt = random.randint(2,65)
+                buy_bar_num = i + cnt - 1
+                buy_price = ret_data.iloc[i, pos_open]
+                min = ret_data.iloc[i, pos_low]
+                max = ret_data.iloc[i, pos_high]
+                for j in range(buy_bar_num + cnt - 1, buy_bar_num + 65):
+                    low = ret_data.iloc[j, pos_low]
+                    high = ret_data.iloc[j, pos_high]
+                    if low < min:
+                        min = low
+                    if high >  max:
+                        max = high
+
+                float_up = max - buy_price
+                float_down = min - buy_price
+
+                print("**** " + date_c)
+                print("     " + "UP  : " + str(float_up))
+                print("     " + "DOWN: " + str(float_down))
+
+
+
+
         return 0, ret_data
 
     def test_magment_15M_history(self, start, end):
@@ -387,7 +458,7 @@ if __name__ == "__main__":
     #b.test_boll()
     start = '2016-07-10'
     end = '2017-07-10'
-    ret, k = b.test_magment_15M_history(start, end)
+    ret, k = b.test_random_5M_history(start, end)
     #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")
     #if ret != -1:
     #    print("ok")

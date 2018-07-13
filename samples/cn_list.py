@@ -78,6 +78,13 @@ class broker:
 
         ktype = "K_15M"
         sum = 0
+        #    code             time_key       open      close       high   low  pe_ratio  turnover_rate volume      turnover  change_rate MA4      MA4_I  MA4_R_T3  trade_result
+        pos_open = 2
+        pos_close = 3
+        pos_ma4 = 11
+        pos_ma4_i = 12
+        pos_ma4_r = 13
+        pos_test_result = 14
         ret, ret_data = self.get_history_k(code, start, end, ktype)
         if ret != 0:
             print("get history fail")
@@ -89,11 +96,11 @@ class broker:
         ret_data["MA4_R_T3"] = 0.0
         ret_data["trade_result"] = 0.0
         for i in range(3, num):
-            ret_data.iloc[i, 10] = ( ret_data.iloc[i, 3] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
-            ret_data.iloc[i, 11] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+            ret_data.iloc[i, pos_ma4] = ( ret_data.iloc[i, 3] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
+            ret_data.iloc[i, pos_ma4_i] = ( ret_data.iloc[i, 2] + ret_data.iloc[i - 1, 3] + ret_data.iloc[i - 2, 3] + ret_data.iloc[i - 3, 3])/4
 
         for i in range(6, num):
-            ret_data.iloc[i, 12] = ( ret_data.iloc[i, 11] - ret_data.iloc[i - 3, 11] )/3
+            ret_data.iloc[i, pos_ma4_r] = ( ret_data.iloc[i, pos_ma4_i] - ret_data.iloc[i - 3, pos_ma4_i] )/3
 
 
         for i in range(4, num):
@@ -107,7 +114,7 @@ class broker:
                 close_p = ret_data.iloc[i - 1, 3]
                 open_c  = ret_data.iloc[i, 2]
                 gap = open_c - close_p
-                ma4_r = ret_data.iloc[i, 12]
+                ma4_r = ret_data.iloc[i, pos_ma4_r]
                 rst = ret_data.iloc[i, 3] - ret_data.iloc[i, 2]
                 ## Gao Kai
                 if gap > 0:
@@ -116,7 +123,7 @@ class broker:
                 ## Di Kai
                 else:
                     trade_ret = rst
-                ret_data.iloc[i, 13] = trade_ret
+                ret_data.iloc[i, pos_test_result] = trade_ret
                 print("**** " + date_c)
                 print("     " + "Gap: " + str(gap))
                 print("     " + "Rat: " + str(ma4_r))
@@ -124,6 +131,13 @@ class broker:
                 print("     " + "Trade Result " + str(trade_ret))
                 sum += trade_ret
         print("Total: " + str(sum))
+
+       # for i in range(4, num):
+        #    if  ret_data.iloc[i, pos_test_result]!=0:
+       #         print( ret_data.iloc[i, pos_test_result])
+
+
+
         return 0, ret_data
 
     def test_boll(self ):
@@ -372,12 +386,12 @@ if __name__ == "__main__":
     b.connect_api()
     #b.test_boll()
     start = '2016-07-10'
-    end = '2018-07-10'
+    end = '2017-07-10'
     ret, k = b.test_magment_15M_history(start, end)
     #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")
     #if ret != -1:
     #    print("ok")
-    print(k)
+    #print(k)
 
     exit(0)
     b.get_acc_info()
@@ -394,6 +408,8 @@ if __name__ == "__main__":
     ret, k = b.get_history_k(code, start, end)
     if ret != -1:
         print("ok")
+    k.to_csv("C:\\15M_history.csv", index=False)
+    print("Saved")
     #print(k)
 
     #fitting_shape_cup(k)

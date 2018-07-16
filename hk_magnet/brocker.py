@@ -26,6 +26,7 @@ if timesets == TIME_SET_REAL:
     TIME_PREP_DEADLINE = '09:31:00'
     TIME_MKT_OPEN = '09:30:00'
     TIME_STR_END = '09:45:00'
+    TIME_BUY = '09:31:00'
 else:
     TIME_START_WORK    = '15:25:00'
     TIME_CONN_DEADLINE = '15:29:00'
@@ -292,6 +293,13 @@ class brocker:
         ret = self.check_warrent()
         if ret != RET_OK:
             self.rec_log("Check Warrent ERR")
+            self.store_data()
+            return ret
+
+        ## Wait untill 09:31
+        ret = self.wait_for_buy_time()
+        if ret != RET_OK:
+            self.rec_log("Wait for buying ERR")
             self.store_data()
             return ret
 
@@ -828,6 +836,27 @@ class brocker:
         else:
             return RET_ERR
 
+    def wait_for_buy_time(self):
+        self.rec_log("Waiting for 09:31")
+        success = False
+        while True:
+            ret, data_time = self.quote.get_hkfuture_time()
+            if ret != RET_OK:
+                success = False
+                break
+
+            if self.compare_time(data_time, TIME_BUY) == TIME_CMP_BIGGER or \
+                self.compare_time(data_time, TIME_BUY) == TIME_CMP_EQUAL:
+                success = True
+                break
+            else:
+                time.sleep(1)
+                continue
+
+        if success == True:
+            return RET_OK
+        else:
+            return RET_ERR
 
     def sell_warrent(self):
         self.rec_log("Sell...")

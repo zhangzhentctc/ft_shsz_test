@@ -312,7 +312,10 @@ class broker:
             if date_c == date_p:
                 pass
             else:
-                if ret_data.iloc[i, pos_k_open] > ret_data.iloc[i - 1, pos_k_close] and ret_data.iloc[i, pos_k_high] >= ret_data.iloc[i, pos_boll_upper_i]:
+                if ret_data.iloc[i, pos_k_open] > ret_data.iloc[i - 1, pos_k_close] and \
+                        ret_data.iloc[i, pos_k_low] <= (ret_data.iloc[i, pos_boll_lower_i] - 10 ) and \
+                        ret_data.iloc[i, pos_k_open] > ret_data.iloc[i, pos_boll_lower_i]:
+
                     date.append(date_c)
                     boll_upper.append(ret_data.iloc[i, pos_boll_upper_i])
                     boll_lower.append(ret_data.iloc[i, pos_boll_lower_i])
@@ -320,13 +323,14 @@ class broker:
                     low.append(ret_data.iloc[i, pos_k_low])
                     start.append(ret_data.iloc[i, pos_k_open])
                     end.append(ret_data.iloc[i, pos_k_close])
+                    print(date_c + " :" + str(ret_data.iloc[i, pos_k_close] - ret_data.iloc[i, pos_boll_lower_i]))
 
         plt.plot(boll_upper, 'r--')
         plt.plot(boll_lower, 'r--')
-        plt.plot(high, 'g^')
+        #plt.plot(high, 'g^')
         plt.plot(low, 'gv')
-        plt.plot(start, '.')
-        plt.plot(end, 'bs')
+        #plt.plot(start, '.')
+        plt.plot(end, '.')
         plt.show()
 
         return 0, ret_data
@@ -485,7 +489,7 @@ if __name__ == "__main__":
     b = broker(API_LO_SVR_IP, API_SVR_PORT)
     b.connect_api()
     #b.test_boll()
-    start = '2018-03-10'
+    start = '2017-12-20'
     end = '2018-08-07'
     ret, k = b.test_boll(start, end)
     #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")

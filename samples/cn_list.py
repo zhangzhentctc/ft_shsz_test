@@ -220,8 +220,8 @@ class broker:
         return 0, ret_data
 
     def test_boll(self, start, end):
-        #code time_key open close high low  pe_ratio turnover_rate volume  turnover
-        # 0   1        2    3     4    5    6        7             8       9
+        #code time_key open close high low  pe_ratio turnover_rate volume  turnover change_rate
+        # 0   1        2    3     4    5    6        7             8       9        10
 
         code = 'HK.800000'
         ktype = "K_15M"
@@ -245,12 +245,12 @@ class broker:
         pos_k_high = 4
         pos_k_low = 5
 
-        pos_boll_mid = 10
-        pos_boll_upper = 11
-        pos_boll_lower = 12
-        pos_boll_mid_i = 13
-        pos_boll_upper_i = 14
-        pos_boll_lower_i = 15
+        pos_boll_mid = 11
+        pos_boll_upper = 12
+        pos_boll_lower = 13
+        pos_boll_mid_i = 14
+        pos_boll_upper_i = 15
+        pos_boll_lower_i = 16
         ret_data["BOLL_MID"] = 0.0
         ret_data["BOLL_UPPER"] = 0.0
         ret_data["BOLL_LOWER"] = 0.0
@@ -260,7 +260,7 @@ class broker:
         for i in range(boll_n - 1, num):
             # 1. MA
             ma = 0
-            for j in range(i - boll_n + 1, i - 1):
+            for j in range(i - boll_n + 1, i):
                 ma += ret_data.iloc[j, pos_k_close] / boll_n
 
             ma_i = ma + ret_data.iloc[i, pos_k_open] / boll_n
@@ -269,12 +269,12 @@ class broker:
 
             # 2. Sigma
             val = 0
-            for j in range(i - boll_n + 1, i):
+            for j in range(i - boll_n + 1, i + 1):
                 val += ((ret_data.iloc[j, pos_k_close] - ma)**2)/boll_n
             sigma = math.sqrt(val)
 
             val = 0
-            for j in range(i - boll_n + 1, i - 1):
+            for j in range(i - boll_n + 1, i):
                 val += ((ret_data.iloc[j, pos_k_close] - ma_i)**2)/boll_n
             val += ((ret_data.iloc[i, pos_k_open] - ma_i) ** 2) / boll_n
             sigma_i = math.sqrt(val)
@@ -312,7 +312,6 @@ class broker:
             if date_c == date_p:
                 pass
             else:
-                open_val = ret_data.iloc[i, pos_k_open]
                 date.append(date_c)
                 boll_upper.append(ret_data.iloc[i, pos_boll_upper_i])
                 boll_lower.append(ret_data.iloc[i, pos_boll_lower_i])

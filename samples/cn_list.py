@@ -2,6 +2,8 @@ from futuquant import *
 import time
 import math
 import random
+import matplotlib.pyplot as plt
+
 
 class broker:
     def __init__(self, api_svr_ip, api_svr_port):
@@ -217,29 +219,32 @@ class broker:
 
         return 0, ret_data
 
-    def test_boll(self ):
-        # Get K
+    def test_boll(self, start, end):
+        #code time_key open close high low  pe_ratio turnover_rate volume  turnover
+        # 0   1        2    3     4    5    6        7             8       9
+
         code = 'HK.800000'
-        num = 999
         ktype = "K_15M"
-        sum = 0
-        ret, ret_date = self.quote_ctx.subscribe(code, ktype)
+
+        ret, ret_data = self.get_history_k(code, start, end, ktype)
         if ret != 0:
-            print("subscribe fail")
-            print(ret_date)
-            return -1, 0
-        #code time_key open close high low  volume      turnover  pe_ratio  turnover_rate
-        ret_code, ret_data = self.quote_ctx.get_cur_kline(code, num, ktype, autype='qfq')
-        if ret_code != 0:
+            print("get history fail")
             print(ret_data)
-            return -1, ret_data
+            return -1, 0
+        num = len(ret_data)
+
+
 
         # BOLL Paras
         boll_n = 20
         boll_k = 2
 
-        pos_k_close = 3
+
         pos_k_open = 2
+        pos_k_close = 3
+        pos_k_high = 4
+        pos_k_low = 5
+
         pos_boll_mid = 10
         pos_boll_upper = 11
         pos_boll_lower = 12
@@ -292,6 +297,13 @@ class broker:
 
         ## Strategy and Test
         ## Let's see a new day opens on which part
+        date = []
+        boll_upper = []
+        boll_lower = []
+        high = []
+        low = []
+        start = []
+        end = []
         for i in range(boll_n - 1, num):
             date_time_p = ret_data.iloc[i - 1, 1]
             date_p = date_time_p.split(" ")[0]
@@ -301,10 +313,21 @@ class broker:
                 pass
             else:
                 open_val = ret_data.iloc[i, pos_k_open]
-                rate = (open_val - ret_data.iloc[i, pos_boll_lower_i])/(ret_data.iloc[i, pos_boll_upper_i] - ret_data.iloc[i, pos_boll_lower_i])
-                print("***** " + str(date_c))
-                print("***** open at " + str(rate))
+                date.append(date_c)
+                boll_upper.append(ret_data.iloc[i, pos_boll_upper_i])
+                boll_lower.append(ret_data.iloc[i, pos_boll_lower_i])
+                high.append(ret_data.iloc[i, pos_k_high])
+                low.append(ret_data.iloc[i, pos_k_low])
+                start.append(ret_data.iloc[i, pos_k_open])
+                end.append(ret_data.iloc[i, pos_k_close])
 
+        plt.plot(boll_upper, 'r--')
+        plt.plot(boll_lower, 'r--')
+        plt.plot(high, 'g^')
+        plt.plot(low, 'g^')
+        plt.plot(start, '.')
+        plt.plot(end, 'bs')
+        plt.show()
 
         return 0, ret_data
 
@@ -464,7 +487,7 @@ if __name__ == "__main__":
     #b.test_boll()
     start = '2016-07-10'
     end = '2017-07-10'
-    ret, k = b.test_random_5M_history(start, end)
+    ret, k = b.test_boll(start, end)
     #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")
     #if ret != -1:
     #    print("ok")

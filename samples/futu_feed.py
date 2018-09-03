@@ -3,16 +3,20 @@ from selenium.webdriver.common.keys import Keys  #导入Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from time import *
+from datetime import *
 
 link = "https://seed.futunn.com/"
 File_Acc = "./acc.txt"
 
 def log(str):
-    print(str)
+    now_time = datetime.now()
+    now_time_str = datetime.strftime(now_time, '%Y-%m-%d %H:%M:%S')
+    localtime = now_time_str.split(' ')[1]
+    print("[" + localtime + "]" + str)
 
 def do_work(acc, passwd):
-    driver = webdriver.PhantomJS()
-    #driver = webdriver.Chrome()
+    #driver = webdriver.PhantomJS()
+    driver = webdriver.Chrome()
     driver.get(link)
 
     #### Login
@@ -60,6 +64,14 @@ def do_work(acc, passwd):
     driver.execute_script("arguments[0].click();", hasMore_region)
     sleep(5)
     log("More")
+    hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
+    driver.execute_script("arguments[0].click();", hasMore_region)
+    log("More")
+    sleep(5)
+    hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
+    driver.execute_script("arguments[0].click();", hasMore_region)
+    log("More")
+    sleep(5)
 
     friends_need = True
     while friends_need == True:
@@ -85,6 +97,14 @@ def do_work(acc, passwd):
             log("Back")
             sleep(5)
             ######## Load More
+            hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
+            driver.execute_script("arguments[0].click();", hasMore_region)
+            log("More")
+            sleep(5)
+            hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
+            driver.execute_script("arguments[0].click();", hasMore_region)
+            log("More")
+            sleep(5)
             hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
             driver.execute_script("arguments[0].click();", hasMore_region)
             log("More")

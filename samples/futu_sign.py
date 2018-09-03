@@ -3,12 +3,16 @@ from selenium.webdriver.common.keys import Keys  #导入Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from time import *
+from datetime import *
 
 link = "https://www.futunn.com/"
 File_Acc = "./acc.txt"
 
 def log(str):
-    print(str)
+    now_time = datetime.now()
+    now_time_str = datetime.strftime(now_time, '%Y-%m-%d %H:%M:%S')
+    localtime = now_time_str.split(' ')[1]
+    print("[" + localtime + "]" + str)
 
 def do_work(acc, passwd):
     #driver = webdriver.PhantomJS()
@@ -56,9 +60,13 @@ def do_work(acc, passwd):
     driver.execute_script("arguments[0].click();", anews_button)
     log("Click News")
     sleep(5)
-    pg_src = driver.page_source
-    print(pg_src)
-
+    #pg_src = driver.page_source
+    #print(pg_src)
+    log("Finished")
+    #pg_src = driver.page_source
+    #print(pg_src)
+    # print(pg_src)
+    driver.quit()
     return
 
 

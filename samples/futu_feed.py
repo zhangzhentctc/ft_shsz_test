@@ -39,39 +39,21 @@ def do_work(acc, passwd):
     pg_src = driver.page_source
     #print(pg_src)
 
-    #### Pour water
-    waterProgress = driver.find_element_by_class_name("waterProgress")
-    circle = waterProgress.find_elements_by_tag_name("circle")
-    #time = float(circle[1].get_attribute('stroke-dasharray').split(" ")[0])
-    log("check water process ")
 
-    waterCanvas = driver.find_element_by_id("waterCanvas")
-    ActionChains(driver).double_click(waterCanvas).perform()
 
     #### Friends
     friends_ = driver.find_element_by_xpath("//*[@class='nav-icon icon_nav-friends']")
     friends_.click()
-    log("Friends")
+    log("Find Friends")
     sleep(5)
 
 
     ######## Load More
-    hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-    driver.execute_script("arguments[0].click();", hasMore_region)
-    sleep(5)
-    log("More")
-    hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-    driver.execute_script("arguments[0].click();", hasMore_region)
-    sleep(5)
-    log("More")
-    hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-    driver.execute_script("arguments[0].click();", hasMore_region)
-    log("More")
-    sleep(5)
-    hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-    driver.execute_script("arguments[0].click();", hasMore_region)
-    log("More")
-    sleep(5)
+    for i in range(0, 10):
+        hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
+        driver.execute_script("arguments[0].click();", hasMore_region)
+        log("More Friends")
+        sleep(5)
 
     friends_need = True
     while friends_need == True:
@@ -82,6 +64,11 @@ def do_work(acc, passwd):
         except:
             friends_need = False
             log("No friend needs")
+            #### Back
+            back = driver.find_element_by_xpath("//*[@class='back-text']")
+            driver.execute_script("arguments[0].click();", back)
+            log("Back")
+            sleep(5)
             break
         log("Someone needs")
         if friends_need == True:
@@ -97,22 +84,27 @@ def do_work(acc, passwd):
             log("Back")
             sleep(5)
             ######## Load More
-            hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-            driver.execute_script("arguments[0].click();", hasMore_region)
-            log("More")
-            sleep(5)
-            hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-            driver.execute_script("arguments[0].click();", hasMore_region)
-            log("More")
-            sleep(5)
-            hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-            driver.execute_script("arguments[0].click();", hasMore_region)
-            log("More")
-            sleep(5)
-            hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
-            driver.execute_script("arguments[0].click();", hasMore_region)
-            log("More")
-            sleep(5)
+            for i in range(0, 10):
+                hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
+                driver.execute_script("arguments[0].click();", hasMore_region)
+                log("More Friends")
+                sleep(5)
+    #### Pour water
+    try:
+        #waterProgress = driver.find_element_by_class_name("waterProgress")
+        #circle = waterProgress.find_elements_by_tag_name("circle")
+        # time = float(circle[1].get_attribute('stroke-dasharray').split(" ")[0])
+        log("Check water process ")
+
+        waterCanvas = driver.find_element_by_id("waterCanvas")
+        driver.execute_script("arguments[0].click();", waterCanvas)
+        #ActionChains(driver).double_click(waterCanvas).perform()
+        sleep(5)
+    except:
+        log("FULL")
+        driver.close()
+        return 0
+
 
     log("Finished")
     #pg_src = driver.page_source

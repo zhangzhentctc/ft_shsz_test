@@ -490,12 +490,112 @@ if __name__ == "__main__":
     b.connect_api()
     #b.test_boll()
     start = '2017-12-20'
-    end = '2018-08-07'
-    ret, k = b.test_boll(start, end)
-    #ret, k = b.get_history_k("HK.800000", start, end, "K_15M")
-    #if ret != -1:
-    #    print("ok")
-    #print(k)
+    end = '2018-06-30'
+    #ret, k = b.test_boll(start, end)
+    ret, k = b.get_history_k("HK.800000", start, end, "K_5M")
+    if ret == -1:
+        print("fail")
+    cycle = 9
+    test_day = '2018-07-09'
+    test_day2 = '2018-07-20'
+    ret, test_set = b.get_history_k("HK.800000", test_day2, test_day2, "K_5M")
+    if ret == -1:
+        print("fail")
+    #print(test_set)
+    test_ret = [[],[]]
+    cnt = 0
+    for i in range(1, len(k)):
+        date_time_p = k.iloc[i - 1, 1]
+        date_p = date_time_p.split(" ")[0]
+        date_time_c = k.iloc[i, 1]
+        date_c = date_time_c.split(" ")[0]
+        if date_c == date_p:
+            pass
+        else:
+            cnt +=1
+            # Get highest and lowest of src
+            src_h = k.iloc[i, 3]
+            src_l = k.iloc[i, 3]
+            for j in range(0, cycle):
+                if k.iloc[i + j, 3] > src_h:
+                    src_h = k.iloc[i + j, 3]
+                if k.iloc[i + j, 3] < src_l:
+                    src_l = k.iloc[i + j, 3]
+
+            # Get highest and lowest of test
+            tet_h = test_set.iloc[0, 3]
+            tet_l = test_set.iloc[0, 3]
+            for j in range(0, cycle):
+                if k.iloc[ j, 3] > tet_h:
+                    tet_h = test_set.iloc[0 + j, 3]
+                if k.iloc[ j, 3] < tet_l:
+                    tet_l = test_set.iloc[0 + j, 3]
+
+            # Calculate derivative
+            delta = (src_h - src_l) - (tet_h - tet_l)
+            single_ret_list = []
+            for t in range(0, abs(int(delta)) + 1):
+                der = 0
+                for j in range(0, cycle):
+                    if delta > 0:
+                        unit1 = (k.iloc[i + j, 2] - src_l) - (test_set.iloc[0 + j, 2] - tet_l + t)
+                        unit2 = (k.iloc[i + j, 3] - src_l) - (test_set.iloc[0 + j, 3] - tet_l + t)
+                        unit3 = (k.iloc[i + j, 4] - src_l) - (test_set.iloc[0 + j, 4] - tet_l + t)
+                        unit4 = (k.iloc[i + j, 5] - src_l) - (test_set.iloc[0 + j, 5] - tet_l + t)
+                    else:
+                        unit1 = (k.iloc[i + j, 2] - src_l + t) - (test_set.iloc[0 + j, 2] - tet_l)
+                        unit2 = (k.iloc[i + j, 3] - src_l + t) - (test_set.iloc[0 + j, 3] - tet_l)
+                        unit3 = (k.iloc[i + j, 4] - src_l + t) - (test_set.iloc[0 + j, 4] - tet_l)
+                        unit4 = (k.iloc[i + j, 5] - src_l + t) - (test_set.iloc[0 + j, 5] - tet_l)
+                    der += (unit1 * unit1 + unit2 * unit2 + unit3 * unit3 + unit4 * unit4)
+                single_ret_list.append(der)
+            # find smallest der
+
+            min_val = single_ret_list[0]
+            for val in single_ret_list:
+                if val < min_val:
+                    min_val = val
+
+            # Done
+            test_ret[0].append(date_c)
+            test_ret[1].append(min_val)
+
+
+    # Print result
+    min_day = test_ret[1][0]
+    min_pos = 0
+    for i in range(0, cnt):
+        if test_ret[1][i] < min_day:
+            min_day = test_ret[1][i]
+            min_pos = i
+    print(test_ret[0][min_pos])
+    print(test_ret[1][min_pos])
+    for i in range(1, len(k)):
+        date_time_p = k.iloc[i - 1, 1]
+        date_p = date_time_p.split(" ")[0]
+        date_time_c = k.iloc[i, 1]
+        date_c = date_time_c.split(" ")[0]
+        if date_c == date_p:
+            pass
+        else:
+            if date_c == test_ret[0][min_pos]:
+                for n in range(0, 5):
+                    d1 = k.iloc[i + cycle - 1 + n, 2] - k.iloc[i + cycle - 1 + n, 2]
+                    d2 = k.iloc[i + cycle - 1 + n, 3] - k.iloc[i + cycle - 1 + n, 2]
+                    d3 = k.iloc[i + cycle - 1 + n, 4] - k.iloc[i + cycle - 1 + n, 2]
+                    d4 = k.iloc[i + cycle - 1 + n, 5] - k.iloc[i + cycle - 1 + n, 2]
+                    print(str(d1) + " " + str(d2) +" "+ str(d3) + " "+str(d4))
+    print("   ")
+    print(test_day2)
+    for n in range(0, 5):
+        d1 = test_set.iloc[cycle - 1 + n, 2] - test_set.iloc[cycle - 1 + n, 2]
+        d2 = test_set.iloc[cycle - 1 + n, 3] - test_set.iloc[cycle - 1 + n, 2]
+        d3 = test_set.iloc[cycle - 1 + n, 4] - test_set.iloc[cycle - 1 + n, 2]
+        d4 = test_set.iloc[cycle - 1 + n, 5] - test_set.iloc[cycle - 1 + n, 2]
+        print(str(d1) + " " + str(d2) + " " + str(d3) + " " + str(d4))
+
+
+
 
     exit(0)
     b.get_acc_info()

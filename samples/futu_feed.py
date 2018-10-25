@@ -16,7 +16,7 @@ def log(str):
     print("[" + localtime + "]" + str)
 
 def do_work(acc, passwd):
-    load_num = 18
+    load_num = 22
     #driver = webdriver.PhantomJS()
     driver = webdriver.Chrome()
     driver.get(link)
@@ -67,7 +67,7 @@ def do_work(acc, passwd):
         hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
         driver.execute_script("arguments[0].click();", hasMore_region)
         #log("More Friends")
-        time.sleep(5)
+        time.sleep(3)
 
     friends_need = True
     while friends_need == True:
@@ -102,7 +102,7 @@ def do_work(acc, passwd):
                 hasMore_region = driver.find_element_by_xpath("//*[@ng-show='!friendsLoading']")
                 driver.execute_script("arguments[0].click();", hasMore_region)
                 #log("More Friends")
-                time.sleep(5)
+                time.sleep(3)
 
 
 

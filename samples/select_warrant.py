@@ -82,6 +82,40 @@ class broker:
 
         return bull_cnt, bear_cnt, hsi_animal_ret
 
+    def cal_street(self, hsi_animal_list):
+        para_code_list = []
+        para_code_list_cnt = 0
+        para_code_cnt = 0
+        hsi_animal_ret = []
+        bear_cnt = 0
+        bull_cnt = 0
+        result = []
+        for code in hsi_animal_list:
+            para_code_list.append(code[0])
+            para_code_list_cnt += 1
+            para_code_cnt += 1
+
+            if para_code_list_cnt >= 199 or para_code_cnt == len(hsi_animal_list):
+                print("Process group")
+                ret_code, hsi_animals_shot = self.quote_ctx.get_market_snapshot(para_code_list)
+                if ret_code != 0:
+                    return -1, -1, hsi_animals_shot
+
+                # Filter
+                for j in range(0, len(hsi_animals_shot)):
+                    if hsi_animals_shot["suspension"][j] == False:
+                        recov_price = hsi_animals_shot["wrt_recovery_price"][j]
+                        street_vol = hsi_animals_shot["wrt_street_vol"][j]
+                        found = False
+                        for i in range(0, len(result)):
+                            if result[i][0] == recov_price:
+                                result[i][1] += street_vol
+                                found = True
+                        if found == False:
+                            result.append([recov_price, street_vol, hsi_animals_shot["wrt_type"][j]])
+
+        return bull_cnt, bear_cnt, result
+
     def test_name(self, name):
         ret = False
         if len(name) != 10:
@@ -186,6 +220,43 @@ class broker:
 
 
 
+    def find_street_stock(self):
+        hsi_animal_list = []
+        ret_code, all_warrant = self.quote_ctx.get_stock_basicinfo("HK", stock_type='WARRANT')
+        if ret_code != 0:
+            return -1, all_warrant, all_warrant
+
+        hsi_animal_cnt = 0
+        for i in range(0, len(all_warrant)):
+            if all_warrant["owner_stock_code"][i] == "HK.800000" and \
+                (all_warrant["stock_child_type"][i] == "BULL" or all_warrant["stock_child_type"][i] == "BEAR"):
+                if self.test_name(all_warrant["name"][i]) == False:
+                    continue
+
+                holder_num = 0
+                hsi_animal_list.append([all_warrant["code"][i], holder_num, all_warrant["stock_child_type"][i]])
+                hsi_animal_cnt += 1
+
+        print("Got warrant list")
+
+        bull_cnt, bear_cnt, hsi_animal_ret = self.cal_street(hsi_animal_list)
+
+        result = []
+        factor_pos = 0
+        while len(hsi_animal_ret) > 0:
+            min_pos = 0
+            for i in range(0, len(hsi_animal_ret)):
+                if hsi_animal_ret[i][factor_pos] < hsi_animal_ret[min_pos][factor_pos]:
+                    min_pos = i
+            result.append(hsi_animal_ret[min_pos][0])
+
+            del (hsi_animal_ret[min_pos])
+
+        for i in range(0, len(result)):
+            print(str(result[i][0]) + ": " + str(result[i][1]))
+
+        print("End")
+        return 0, hsi_bull_ret_order, hsi_bear_ret_order
 
 
 
